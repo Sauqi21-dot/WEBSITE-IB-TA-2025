@@ -27,7 +27,7 @@ const DAYS_ORDER: ('Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat')[] = [
 
 export default function JadwalPage() {
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
-  const [lastUpdated, setLastUpdated] = useState<string>("2025-10-14T08:00:00Z");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
   const [viewMode, setViewMode] = useState<"week" | "day">("week");
@@ -44,7 +44,7 @@ export default function JadwalPage() {
       setSelectedDay(currentDayName as any);
     }
 
-    // 2. Deteksi status jaringan online / offline (AC-03 Mode Pesawat)
+    // 2. Deteksi status jaringan online / offline (Mode Pesawat)
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
@@ -116,7 +116,7 @@ export default function JadwalPage() {
     <>
       <Navbar />
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 space-y-8">
-        {/* Banner Status Mode Pesawat / Offline (AC-03) */}
+        {/* Banner Status Mode Pesawat / Offline */}
         {isOffline && (
           <div className="bg-amber-100 border border-ib-accent p-3.5 rounded text-xs flex items-center justify-between text-amber-950">
             <div className="flex items-center gap-2">
@@ -143,14 +143,20 @@ export default function JadwalPage() {
                 Jadwal Kuliah Kelas 3IB
               </h1>
               <p className="text-sm text-ib-text/75 mt-1">
-                D3 Manajemen Informatika Polsri · Tahun Akademik 2025/2026
+                D3 Manajemen Informatika Polsri · Tahun Akademik 2026/2027
               </p>
             </div>
 
-            {/* Keterangan Terakhir Diperbarui (AC-03) */}
+            {/* Keterangan Terakhir Diperbarui */}
             <div className="text-xs bg-[#EFECE2] border border-ib-border px-3 py-2 rounded self-start md:self-auto space-y-0.5">
-              <p className="text-ib-text/60 font-medium">Terakhir diperbarui:</p>
-              <p className="font-semibold text-ib-dark">{formatDateTime(lastUpdated)} WIB</p>
+              {lastUpdated ? (
+                <>
+                  <p className="text-ib-text/60 font-medium">Terakhir diperbarui:</p>
+                  <p className="font-semibold text-ib-dark">{formatDateTime(lastUpdated)} WIB</p>
+                </>
+              ) : (
+                <p className="font-semibold text-ib-dark">Jadwal Semester Aktif</p>
+              )}
             </div>
           </div>
 
@@ -203,8 +209,12 @@ export default function JadwalPage() {
         {/* Daftar Jadwal */}
         {loading && schedules.length === 0 ? (
           <div className="space-y-4">
+            <p className="text-xs text-ib-text/60 italic animate-pulse">Memuat jadwal perkuliahan...</p>
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border border-ib-border p-6 rounded animate-pulse h-32" />
+              <div key={i} className="bg-white border border-ib-border p-6 rounded animate-pulse h-32 space-y-3">
+                <div className="h-4 bg-ib-border/60 rounded w-1/4" />
+                <div className="h-3 bg-ib-border/40 rounded w-1/2" />
+              </div>
             ))}
           </div>
         ) : (

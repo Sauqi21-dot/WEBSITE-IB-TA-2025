@@ -6,6 +6,7 @@ export interface GalleryItemData {
   semester: number;
   category: 'Akademik' | 'Kebersamaan' | 'Kegiatan Kampus' | 'Lomba & Proyek';
   taken_on: string;
+  is_featured?: boolean;
 }
 
 export interface ClassHistoryData {

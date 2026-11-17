@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { createClient } from "@/lib/supabase/client";
 
 interface ScheduleItem {
   id: string;
@@ -25,10 +26,18 @@ interface BirthdayPerson {
   isToday: boolean;
 }
 
+interface FeaturedPhoto {
+  id: string;
+  title: string;
+  image_path: string;
+}
+
 export default function HomePage() {
   const [todaySchedules, setTodaySchedules] = useState<ScheduleItem[]>([]);
   const [todayDayName, setTodayDayName] = useState<string>("");
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<BirthdayPerson[]>([]);
+  const [featuredPhoto, setFeaturedPhoto] = useState<FeaturedPhoto | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,11 +46,22 @@ export default function HomePage() {
     const currentDay = dayMap[now.getDay()];
     setTodayDayName(currentDay);
 
+    async function checkAuth() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setIsLoggedIn(true);
+        }
+      } catch {}
+    }
+
     async function loadHomepageData() {
       try {
-        const [schRes, bdayRes] = await Promise.all([
+        const [schRes, bdayRes, galRes] = await Promise.all([
           fetch("/api/public/schedules").then((r) => r.json()).catch(() => ({})),
           fetch("/api/public/birthdays").then((r) => r.json()).catch(() => ({})),
+          fetch("/api/public/gallery").then((r) => r.json()).catch(() => ({})),
         ]);
 
         if (schRes.data) {
@@ -53,6 +73,10 @@ export default function HomePage() {
           const list = [...(bdayRes.today || []), ...(bdayRes.next7Days || [])];
           setUpcomingBirthdays(list.slice(0, 3));
         }
+
+        if (galRes.featuredPhoto) {
+          setFeaturedPhoto(galRes.featuredPhoto);
+        }
       } catch (err) {
         console.error("Gagal memuat pratinjau beranda:", err);
       } finally {
@@ -60,6 +84,7 @@ export default function HomePage() {
       }
     }
 
+    checkAuth();
     loadHomepageData();
   }, []);
 
@@ -71,9 +96,6 @@ export default function HomePage() {
         <section className="border-b border-ib-border pb-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <span className="text-xs uppercase tracking-widest font-semibold text-ib-action">
-                Dokumentasi &amp; Portal Resmi Kelas
-              </span>
               <h1 className="font-serif text-4xl md:text-6xl font-bold text-ib-dark tracking-tight mt-1">
                 IB 2025
               </h1>
@@ -84,7 +106,7 @@ export default function HomePage() {
             <div className="text-xs md:text-right text-ib-text/70 border-t md:border-t-0 md:border-l border-ib-border pt-3 md:pt-0 md:pl-6 flex-shrink-0">
               <p className="font-semibold text-ib-dark">D3 Manajemen Informatika</p>
               <p>Politeknik Negeri Sriwijaya</p>
-              <p className="mt-1 text-ib-accent font-semibold">Semester 3 &middot; Angkatan 2025</p>
+              <p className="mt-1 text-ib-accent font-semibold">Semester 3 &middot; Tahun Akademik 2026/2027</p>
             </div>
           </div>
         </section>
@@ -93,27 +115,26 @@ export default function HomePage() {
         <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Kolom Utama (8 cols) */}
           <div className="md:col-span-8 space-y-6">
-            {/* Foto Pilihan Kelas (FR-01) */}
+            {/* Foto Pilihan Kelas (Hanya tampil jika ada is_featured di database, tanpa placeholder) */}
             <div className="bg-white border border-ib-border rounded overflow-hidden shadow-sm">
-              <div className="aspect-[21/9] bg-ib-dark/10 relative overflow-hidden flex items-center justify-center border-b border-ib-border">
-                <img
-                  src="/avatars/avatar-14.svg"
-                  alt="Kebersamaan Kelas 3IB Polsri"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-3 py-1 rounded backdrop-blur-sm">
-                  Foto Pilihan: Dokumentasi Perkuliahan 24 Mahasiswa Kelas 3IB Polsri
+              {featuredPhoto && (
+                <div className="aspect-[21/9] bg-ib-dark/10 relative overflow-hidden flex items-center justify-center border-b border-ib-border">
+                  <img
+                    src={featuredPhoto.image_path}
+                    alt={featuredPhoto.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-3 left-3 bg-black/70 text-white text-xs px-3 py-1 rounded backdrop-blur-sm">
+                    {featuredPhoto.title}
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="p-6">
-                <span className="text-xs uppercase tracking-wider font-semibold text-ib-action">
-                  Tentang Kelas Kita
-                </span>
-                <h2 className="font-serif text-2xl font-bold text-ib-dark leading-snug mt-1">
-                  Menjaga Informasi, Menyatukan Kenangan, dan Membuka Kas Kelas
+                <h2 className="font-serif text-2xl font-bold text-ib-dark leading-snug">
+                  Kenapa website ini ada
                 </h2>
                 <p className="text-sm text-ib-text/85 mt-3 leading-relaxed">
-                  Website ini dibangun untuk menjawab masalah nyata yang kita alami sehari-hari: jadwal kuliah yang sering tenggelam di grup chat, foto-foto kenangan yang berserakan di berbagai galeri pribadi, dan catatan kas kelas yang perlu transparansi penuh. Di sini, siapa pun bisa melihat jadwal dan direktori tanpa login, sedangkan mahasiswa dapat masuk untuk memeriksa kas dan profil masing-masing.
+                  Jadwal sering tenggelam di grup chat, foto kenangan tersebar di galeri masing-masing, dan kas perlu dicatat dengan jelas. Jadi kami kumpulkan di sini. Jadwal, mahasiswa, galeri, dan ulang tahun bisa dilihat siapa saja. Login dipakai untuk profil dan kas.
                 </p>
                 <div className="mt-5 pt-4 border-t border-ib-border flex flex-wrap items-center gap-3 text-xs">
                   <Link href="/jadwal" className="btn-secondary py-1.5 px-3">
@@ -129,14 +150,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Struktur Organisasi Inti (FR-02) */}
+            {/* Struktur Organisasi Inti */}
             <div className="bg-[#FCFAF5] border border-ib-border p-6 rounded">
               <div className="border-b border-ib-border pb-2 mb-4">
                 <span className="text-xs uppercase tracking-wider font-semibold text-ib-dark">
-                  Profil Kelas &amp; Struktur Organisasi (FR-02)
+                  Profil Kelas &amp; Struktur Organisasi
                 </span>
                 <h3 className="font-serif text-xl font-bold text-ib-dark mt-0.5">
-                  Pengurus Kelas 3IB (Angkatan 2025)
+                  Pengurus Kelas 3IB
                 </h3>
               </div>
 
@@ -147,7 +168,7 @@ export default function HomePage() {
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">M. Zidal Muttaqin</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Koordinator umum kelas, manajemen otorisasi sistem, aktivasi akun mahasiswa, dan audit kas.
+                    Koordinator kelas, mengaktifkan akun, dan mengaudit kas.
                   </p>
                 </div>
 
@@ -157,7 +178,7 @@ export default function HomePage() {
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">Ahmad Sauqi Efriansyah</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Pengelolaan jadwal perkuliahan, sinkronisasi ruang dan dosen, serta koordinasi konten website.
+                    Mengurus jadwal dan konten website.
                   </p>
                 </div>
 
@@ -167,7 +188,7 @@ export default function HomePage() {
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">Putri Alika Sari</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Kurasi galeri foto per semester, dokumentasi kegiatan, dan pencatatan riwayat kelas.
+                    Mengurus galeri foto dan riwayat kelas.
                   </p>
                 </div>
 
@@ -177,7 +198,7 @@ export default function HomePage() {
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">Salsabila Julia Mecca</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Pencatatan iuran kas append-only, pembukuan saldo transparan, dan rekapitulasi pembayaran.
+                    Mencatat iuran dan menjaga saldo kas.
                   </p>
                 </div>
               </div>
@@ -186,7 +207,7 @@ export default function HomePage() {
 
           {/* Kolom Samping / Sidebar Editorial (4 cols) */}
           <aside className="md:col-span-4 space-y-6">
-            {/* Pratinjau Jadwal Hari Ini (FR-01) */}
+            {/* Pratinjau Jadwal Hari Ini */}
             <div className="bg-white border border-ib-border p-5 rounded shadow-sm space-y-3">
               <div className="flex items-center justify-between border-b border-ib-border pb-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-ib-dark">
@@ -198,10 +219,12 @@ export default function HomePage() {
               </div>
 
               {loading ? (
-                <div className="p-3 bg-[#FCFAF5] rounded animate-pulse h-16" />
+                <div className="p-4 bg-[#FCFAF5] rounded animate-pulse text-xs text-ib-text/60 italic">
+                  Memuat jadwal hari ini...
+                </div>
               ) : todaySchedules.length === 0 ? (
                 <p className="text-xs text-ib-text/60 italic py-2">
-                  Tidak ada jadwal kuliah untuk hari {todayDayName}. Nikmati waktu belajar mandiri!
+                  Tidak ada jadwal kuliah untuk hari {todayDayName}.
                 </p>
               ) : (
                 <div className="space-y-2.5">
@@ -228,7 +251,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Pratinjau Ulang Tahun Terdekat (FR-01) */}
+            {/* Pratinjau Ulang Tahun Terdekat */}
             <div className="bg-white border border-ib-border p-5 rounded shadow-sm space-y-3">
               <div className="flex items-center justify-between border-b border-ib-border pb-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-ib-dark">
@@ -238,7 +261,9 @@ export default function HomePage() {
               </div>
 
               {loading ? (
-                <div className="p-3 bg-[#FCFAF5] rounded animate-pulse h-16" />
+                <div className="p-4 bg-[#FCFAF5] rounded animate-pulse text-xs text-ib-text/60 italic">
+                  Memuat ulang tahun terdekat...
+                </div>
               ) : upcomingBirthdays.length === 0 ? (
                 <p className="text-xs text-ib-text/60 italic py-2">
                   Tidak ada ulang tahun dalam 7 hari ke depan.
@@ -284,18 +309,20 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Portal Mahasiswa */}
-            <div className="bg-[#FAF8F2] border border-ib-border p-4 rounded text-xs space-y-2">
-              <p className="font-bold text-ib-dark uppercase tracking-wider text-[11px]">
-                Akses Khusus Mahasiswa 3IB
-              </p>
-              <p className="text-ib-text/80 leading-relaxed">
-                Login dengan NIM untuk mengelola biodata, foto profil, dan melihat rincian kas kelas.
-              </p>
-              <Link href="/login" className="btn-primary text-xs py-2 w-full block text-center mt-2">
-                Masuk dengan NIM &rarr;
-              </Link>
-            </div>
+            {/* Item 3: Sembunyikan blok login selama sesi aktif */}
+            {!isLoggedIn && (
+              <div className="bg-[#FAF8F2] border border-ib-border p-4 rounded text-xs space-y-2">
+                <p className="font-bold text-ib-dark uppercase tracking-wider text-[11px]">
+                  Akses Mahasiswa
+                </p>
+                <p className="text-ib-text/80 leading-relaxed">
+                  Login dengan NPM untuk mengelola profil dan melihat kas kelas.
+                </p>
+                <Link href="/login" className="btn-primary text-xs py-2 w-full block text-center mt-2">
+                  Masuk dengan NPM &rarr;
+                </Link>
+              </div>
+            )}
           </aside>
         </section>
       </main>

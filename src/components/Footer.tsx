@@ -15,7 +15,7 @@ export default function Footer() {
             D3 Manajemen Informatika · Polsri · Angkatan 2025
           </p>
           <p className="text-xs text-[#A7F3D0] mt-2 max-w-md">
-            Arsip digital perjalanan kelas dari semester 1 sampai kelulusan. Dibangun dengan integritas dan transparansi.
+            Arsip perjalanan kelas 3IB, dari semester 1 sampai lulus.
           </p>
         </div>
 
@@ -25,7 +25,7 @@ export default function Footer() {
             M. Zidal Muttaqin (Ketua) · Ahmad Sauqi (Wakil) · Putri Alika (Sekretaris) · Salsabila (Bendahara)
           </p>
           <p className="text-[#6EE7B7] text-[11px] mt-1">
-            &copy; 2025 Kelas 3IB · Hak Cipta Terjaga
+            &copy; 2026 Kelas 3IB
           </p>
         </div>
       </div>

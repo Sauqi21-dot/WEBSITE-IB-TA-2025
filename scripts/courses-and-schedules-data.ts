@@ -115,7 +115,7 @@ export const INITIAL_SCHEDULES: ScheduleData[] = [
     end_time: "14:40",
     room: "Ruang Kuliah MI-201",
     notes: "Presentasi kelompok pitch deck produk aplikasi.",
-    changed_at: "2025-10-14T08:00:00Z",
+    changed_at: null,
   },
   {
     id: "sch-05",

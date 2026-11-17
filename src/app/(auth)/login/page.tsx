@@ -36,7 +36,7 @@ function LoginForm() {
         if (data.inactive) {
           setInactiveNotice(true);
         }
-        setError(data.error || "Gagal masuk. Periksa NIM dan password Anda.");
+        setError(data.error || "Gagal masuk. Periksa NPM dan password Anda.");
         setLoading(false);
         return;
       }
@@ -58,10 +58,10 @@ function LoginForm() {
           Portal Mahasiswa
         </span>
         <h1 className="font-serif text-2xl md:text-3xl font-bold text-ib-dark mt-1">
-          Masuk dengan NIM
+          Masuk dengan NPM
         </h1>
         <p className="text-xs text-ib-text/70 mt-1">
-          Gunakan NIM resmi Anda (contoh: 062530801574) untuk mengakses profil dan kas kelas.
+          Gunakan NPM resmi Anda (contoh: 062530801587) untuk mengakses profil dan kas kelas.
         </p>
       </div>
 
@@ -79,7 +79,7 @@ function LoginForm() {
           {inactiveNotice && (
             <div className="mt-2 text-xs text-ib-text/80 bg-white/70 p-2 rounded border border-amber-200">
               <p>
-                <strong>Kebijakan Keamanan (AC-05):</strong> Semua 24 akun mahasiswa dibuat berstatus nonaktif dan baru diaktifkan serentak pada sesi kelas bersama Ketua Kelas (M. Zidal Muttaqin).
+                <strong>Kebijakan Keamanan:</strong> Semua 24 akun mahasiswa dibuat berstatus nonaktif dan baru diaktifkan serentak pada sesi kelas bersama Ketua Kelas (M. Zidal Muttaqin).
               </p>
             </div>
           )}
@@ -93,7 +93,7 @@ function LoginForm() {
             htmlFor="nim"
             className="block text-xs font-semibold uppercase tracking-wider text-ib-text mb-1"
           >
-            Nomor Induk Mahasiswa (NIM)
+            Nomor Pokok Mahasiswa (NPM)
           </label>
           <input
             id="nim"

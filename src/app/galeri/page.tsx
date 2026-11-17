@@ -106,7 +106,7 @@ export default function GaleriPage() {
                     : "bg-white border-ib-border text-ib-text hover:bg-[#EFECE2]"
                 }`}
               >
-                Semua Semester ({gallery.length})
+                Semua Semester {loading ? "(memuat…)" : `(${gallery.length})`}
               </button>
               <button
                 onClick={() => setSemesterFilter(1)}
@@ -146,10 +146,17 @@ export default function GaleriPage() {
         {activeTab === "galeri" && (
           <div>
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white border border-ib-border p-4 rounded h-64 animate-pulse" />
-                ))}
+              <div className="space-y-4">
+                <p className="text-xs text-ib-text/60 italic animate-pulse">Memuat galeri dokumentasi...</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white border border-ib-border p-4 rounded h-64 animate-pulse space-y-3">
+                      <div className="aspect-video bg-ib-border/40 rounded" />
+                      <div className="h-4 bg-ib-border/50 rounded w-3/4" />
+                      <div className="h-3 bg-ib-border/30 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : filteredGallery.length === 0 ? (
               <div className="bg-white border border-ib-border p-12 text-center rounded">

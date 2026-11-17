@@ -39,10 +39,13 @@ export async function GET() {
       history = INITIAL_CLASS_HISTORY;
     }
 
+    const featuredPhoto = gallery.find((g: any) => g.is_featured === true) || null;
+
     return NextResponse.json({
       success: true,
       gallery,
       history,
+      featuredPhoto,
     });
   } catch (error: any) {
     return NextResponse.json(

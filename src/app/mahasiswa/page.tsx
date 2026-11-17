@@ -64,7 +64,7 @@ export default function MahasiswaPage() {
               </p>
             </div>
             <div className="text-xs text-ib-text/60 bg-[#EFECE2] px-3 py-1.5 rounded border border-ib-border self-start md:self-auto">
-              Privasi Terjaga: NIM & data sensitif tidak dipublikasikan (AC-02)
+              Privasi Terjaga: Data kontak pribadi tidak dipublikasikan
             </div>
           </div>
 
@@ -102,7 +102,7 @@ export default function MahasiswaPage() {
                     : "bg-white border border-ib-border text-ib-text hover:bg-[#EFECE2]"
                 }`}
               >
-                Semua ({students.length})
+                Semua {loading ? "(memuat…)" : `(${students.length})`}
               </button>
               <button
                 onClick={() => setFilter("pengurus")}
@@ -112,7 +112,7 @@ export default function MahasiswaPage() {
                     : "bg-white border border-ib-border text-ib-text hover:bg-[#EFECE2]"
                 }`}
               >
-                Pengurus (4)
+                Pengurus {loading ? "(memuat…)" : "(4)"}
               </button>
               <button
                 onClick={() => setFilter("mahasiswa")}
@@ -122,7 +122,7 @@ export default function MahasiswaPage() {
                     : "bg-white border border-ib-border text-ib-text hover:bg-[#EFECE2]"
                 }`}
               >
-                Mahasiswa (20)
+                Mahasiswa {loading ? "(memuat…)" : "(20)"}
               </button>
             </div>
           </div>
@@ -130,10 +130,22 @@ export default function MahasiswaPage() {
 
         {/* Grid Kartu Mahasiswa */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white border border-ib-border p-5 rounded animate-pulse h-48" />
-            ))}
+          <div className="space-y-4">
+            <p className="text-xs text-ib-text/60 italic animate-pulse">Memuat data direktori mahasiswa...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white border border-ib-border p-5 rounded animate-pulse h-48 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-ib-border/60" />
+                    <div className="space-y-1 flex-1">
+                      <div className="h-3 bg-ib-border/60 rounded w-3/4" />
+                      <div className="h-2 bg-ib-border/40 rounded w-1/2" />
+                    </div>
+                  </div>
+                  <div className="h-10 bg-ib-border/30 rounded" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="bg-white border border-ib-border p-12 text-center rounded">

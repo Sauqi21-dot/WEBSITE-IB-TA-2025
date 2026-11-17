@@ -68,6 +68,7 @@ export interface GalleryItem {
   category: string;
   taken_on: string;
   uploaded_by: string | null;
+  is_featured: boolean;
   archived: boolean;
   created_at: string;
 }

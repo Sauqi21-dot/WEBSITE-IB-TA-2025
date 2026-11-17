@@ -65,7 +65,7 @@ export default function UlangTahunPage() {
               </p>
             </div>
             <div className="text-xs bg-[#EFECE2] border border-ib-border px-3 py-2 rounded self-start md:self-auto text-ib-text/80">
-              <p className="font-semibold text-ib-dark">Kebijakan Privasi (AC-10):</p>
+              <p className="font-semibold text-ib-dark">Kebijakan Privasi:</p>
               <p>Tahun lahir tidak disimpan. Mahasiswa dapat mematikan tampilannya kapan saja.</p>
             </div>
           </div>
@@ -88,7 +88,9 @@ export default function UlangTahunPage() {
             </div>
 
             {loading ? (
-              <div className="p-4 bg-[#FCFAF5] rounded animate-pulse h-24" />
+              <div className="p-4 bg-[#FCFAF5] rounded animate-pulse h-24 flex items-center justify-center text-xs text-ib-text/60">
+                Memuat data hari ini...
+              </div>
             ) : todayList.length === 0 ? (
               <div className="py-6 text-center text-xs text-ib-text/60 italic">
                 Tidak ada kawan sekelas yang berulang tahun hari ini.
@@ -141,12 +143,14 @@ export default function UlangTahunPage() {
                 Mendekat dalam 7 Hari ke Depan
               </h2>
               <span className="text-xs text-ib-text/60 font-semibold">
-                {next7DaysList.length} Mahasiswa
+                {loading ? "(memuat…)" : `${next7DaysList.length} Mahasiswa`}
               </span>
             </div>
 
             {loading ? (
-              <div className="p-4 bg-[#FCFAF5] rounded animate-pulse h-24" />
+              <div className="p-4 bg-[#FCFAF5] rounded animate-pulse h-24 flex items-center justify-center text-xs text-ib-text/60">
+                Memuat daftar 7 hari ke depan...
+              </div>
             ) : next7DaysList.length === 0 ? (
               <div className="py-6 text-center text-xs text-ib-text/60 italic">
                 Tidak ada ulang tahun dalam 7 hari ke depan.
@@ -198,11 +202,13 @@ export default function UlangTahunPage() {
                     {col.monthName}
                   </h3>
                   <span className="text-[11px] font-semibold text-ib-text/60 bg-[#EFECE2] px-2 py-0.5 rounded">
-                    {col.count} Teman
+                    {loading ? "memuat…" : `${col.count} Teman`}
                   </span>
                 </div>
 
-                {col.members.length === 0 ? (
+                {loading ? (
+                  <div className="h-10 bg-[#FCFAF5] rounded animate-pulse" />
+                ) : col.members.length === 0 ? (
                   <p className="text-xs text-ib-text/40 italic py-2">
                     Tidak ada ulang tahun bulan ini.
                   </p>

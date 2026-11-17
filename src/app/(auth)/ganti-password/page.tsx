@@ -104,14 +104,13 @@ export default function GantiPasswordPage() {
           {/* Header Kartu */}
           <div className="border-b border-ib-border pb-4 mb-6">
             <span className="text-xs uppercase tracking-wider font-semibold text-ib-accent bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-              Langkah Wajib (AC-04)
+              Langkah Wajib
             </span>
-            {/* Sapaan dengan nama mahasiswa sesuai NIM (AC-06) */}
             <h1 className="font-serif text-2xl md:text-3xl font-bold text-ib-dark mt-2">
               {initialLoading ? "Memuat Akun..." : `Halo, ${fullName || "Mahasiswa"}`}
             </h1>
             <p className="text-xs text-ib-text/75 mt-1">
-              {nim ? `NIM: ${nim} · ` : ""}
+              {nim ? `NPM: ${nim} · ` : ""}
               Demi keamanan akun kelas Anda, Anda wajib mengganti password default bersama dengan password pribadi sebelum dapat mengakses halaman lainnya.
             </p>
           </div>
@@ -165,7 +164,7 @@ export default function GantiPasswordPage() {
               />
             </div>
 
-            {/* Aturan Keamanan Password (FR-07) */}
+            {/* Aturan Keamanan Password */}
             <div className="bg-[#F7F5EF] p-3 rounded border border-ib-border text-[11px] text-ib-text/80 space-y-1">
               <p className="font-semibold text-ib-dark">Ketentuan Password:</p>
               <ul className="list-disc list-inside space-y-0.5">

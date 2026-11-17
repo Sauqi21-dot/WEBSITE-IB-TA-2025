@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { STUDENTS_SEED_DATA } from "../../../../../scripts/students-data";
 
 // Helper untuk memeriksa tahun kabisat
@@ -19,10 +20,11 @@ export async function GET() {
   try {
     let rawList: any[] = [];
 
+    // 1. Coba ambil dari view public_students
     try {
       const supabase = createClientServer();
       const { data, error } = await supabase
-        .from("profiles")
+        .from("public_students")
         .select("id, full_name, nickname, photo_path, photo_public, birthday_day, birthday_month, birthday_public")
         .not("birthday_day", "is", null)
         .not("birthday_month", "is", null);
@@ -32,6 +34,24 @@ export async function GET() {
       }
     } catch {
       // Abaikan jika database belum tersambung
+    }
+
+    // 2. Fallback admin client jika anon terblokir RLS
+    if (rawList.length === 0) {
+      try {
+        const adminSupabase = createAdminClient();
+        const { data, error } = await adminSupabase
+          .from("public_students")
+          .select("id, full_name, nickname, photo_path, photo_public, birthday_day, birthday_month, birthday_public")
+          .not("birthday_day", "is", null)
+          .not("birthday_month", "is", null);
+
+        if (!error && data && data.length > 0) {
+          rawList = data;
+        }
+      } catch {
+        // Abaikan jika service role key belum diset
+      }
     }
 
     if (rawList.length === 0) {

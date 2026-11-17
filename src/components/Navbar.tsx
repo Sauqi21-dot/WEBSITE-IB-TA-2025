@@ -10,6 +10,7 @@ interface UserProfile {
   nim: string;
   full_name: string;
   nickname: string | null;
+  photo_path: string | null;
   role: string;
   position: string | null;
 }
@@ -28,7 +29,7 @@ export default function Navbar() {
         if (user) {
           const { data } = await supabase
             .from("profiles")
-            .select("id, nim, full_name, nickname, role, position")
+            .select("id, nim, full_name, nickname, photo_path, role, position")
             .eq("id", user.id)
             .single();
           if (data) setProfile(data);
@@ -63,6 +64,13 @@ export default function Navbar() {
     { href: "/ulang-tahun", label: "Ulang Tahun" },
   ];
 
+  const displayName = profile
+    ? profile.nickname || profile.full_name.trim().split(" ")[0]
+    : "";
+  const initials = profile
+    ? (profile.nickname || profile.full_name).trim().slice(0, 2).toUpperCase()
+    : "";
+
   return (
     <header className="border-b border-ib-border bg-[#F7F5EF] sticky top-0 z-40">
       {/* Masthead Header */}
@@ -85,22 +93,33 @@ export default function Navbar() {
         <div className="flex items-center gap-3 text-sm">
           {!loading && profile ? (
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-ib-text/70">Masuk sebagai</p>
-                <p className="font-semibold text-ib-dark leading-tight">
-                  {profile.nickname || profile.full_name}
-                  {profile.position ? (
-                    <span className="ml-1 text-[11px] font-normal text-ib-accent font-sans">
-                      ({profile.position})
-                    </span>
-                  ) : null}
-                </p>
-              </div>
+              {/* Item 2: Klik foto/nama membuka /profil */}
               <Link
                 href="/profil"
-                className="btn-secondary text-xs py-1.5 px-3"
+                className="flex items-center gap-2.5 hover:opacity-85 transition group"
+                title="Buka Profil Saya"
               >
-                Profil Saya
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-ib-dark text-white flex items-center justify-center font-serif font-bold text-xs border border-ib-border flex-shrink-0 group-hover:border-ib-action">
+                  {profile.photo_path ? (
+                    <img
+                      src={profile.photo_path}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <div className="text-left">
+                  <span className="font-semibold text-xs sm:text-sm text-ib-dark group-hover:text-ib-action leading-tight block">
+                    {displayName}
+                  </span>
+                  {profile.position ? (
+                    <span className="text-[10px] text-ib-accent block leading-none">
+                      {profile.position}
+                    </span>
+                  ) : null}
+                </div>
               </Link>
               <button
                 onClick={handleLogout}
@@ -114,7 +133,7 @@ export default function Navbar() {
               href="/login"
               className="btn-primary text-xs py-1.5 px-4"
             >
-              Login NIM
+              Login NPM
             </Link>
           ) : null}
         </div>

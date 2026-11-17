@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { STUDENTS_SEED_DATA } from "../../../../../scripts/students-data";
 import { PublicStudent } from "@/types/database";
 
@@ -7,7 +8,7 @@ export async function GET() {
   try {
     let students: PublicStudent[] = [];
 
-    // Coba ambil dari Supabase VIEW public_students (AC-02: VIEW ini tidak memiliki kolom NIM)
+    // 1. Coba ambil dari Supabase VIEW public_students
     try {
       const supabase = createClientServer();
       const { data, error } = await supabase
@@ -20,6 +21,23 @@ export async function GET() {
       }
     } catch {
       // Abaikan jika database belum tersambung
+    }
+
+    // 2. Jika anon terblokir RLS view, gunakan admin client untuk membaca view publik aman (tanpa NIM)
+    if (students.length === 0) {
+      try {
+        const adminSupabase = createAdminClient();
+        const { data, error } = await adminSupabase
+          .from("public_students")
+          .select("id, full_name, nickname, photo_path, photo_public, bio, social_link, position, birthday_day, birthday_month, birthday_public")
+          .order("full_name", { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          students = data;
+        }
+      } catch {
+        // Abaikan jika service role key belum diset
+      }
     }
 
     // Jika database belum tersambung atau kosong, gunakan fallback 24 mahasiswa

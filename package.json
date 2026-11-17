@@ -10,7 +10,10 @@
     "seed": "sucrase-node scripts/seed-accounts.ts",
     "activate:pengurus": "sucrase-node scripts/activate-admins.ts",
     "test:fase3": "sucrase-node scripts/test-fase3.ts",
-    "test:fase4": "sucrase-node scripts/test-fase4.ts"
+    "test:fase4": "sucrase-node scripts/test-fase4.ts",
+    "test:profil": "sucrase-node scripts/test-profile-security.ts",
+    "activate:test": "sucrase-node scripts/toggle-test-accounts.ts activate",
+    "deactivate:test": "sucrase-node scripts/toggle-test-accounts.ts deactivate"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

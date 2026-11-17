@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.gallery_items (
     category TEXT NOT NULL,
     taken_on DATE NOT NULL,
     uploaded_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    is_featured BOOLEAN NOT NULL DEFAULT false,
     archived BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -122,7 +123,9 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
 -- ==============================================================================
 
 -- AC-02: VIEW publik TIDAK BOLEH memuat kolom NIM, no HP, alamat, email
-CREATE OR REPLACE VIEW public.public_students AS
+CREATE OR REPLACE VIEW public.public_students
+WITH (security_invoker = false)
+AS
 SELECT
     p.id,
     p.full_name,

@@ -5,7 +5,7 @@ import { INITIAL_SCHEDULES, INITIAL_COURSES } from "../../../../../scripts/cours
 export async function GET() {
   try {
     let schedules: any[] = [];
-    let lastUpdated = "2025-10-14T08:00:00Z";
+    let lastUpdated: string | null = null;
 
     try {
       const supabase = createClientServer();
@@ -20,6 +20,7 @@ export async function GET() {
           room,
           notes,
           changed_at,
+          created_at,
           courses (
             id,
             name,
@@ -43,12 +44,13 @@ export async function GET() {
           lecturer_name: item.courses?.lecturer_name || "Dosen Pengampu",
         }));
 
-        // Cari update terbaru
-        const latestChange = data.reduce((latest: any, curr: any) => {
-          if (!curr.changed_at) return latest;
-          return !latest || new Date(curr.changed_at) > new Date(latest) ? curr.changed_at : latest;
+        // Ambil timestamp asli dari changed_at atau created_at terbaru
+        const latestTime = data.reduce((latest: string | null, curr: any) => {
+          const itemTime = curr.changed_at || curr.created_at;
+          if (!itemTime) return latest;
+          return !latest || new Date(itemTime) > new Date(latest) ? itemTime : latest;
         }, null);
-        if (latestChange) lastUpdated = latestChange;
+        if (latestTime) lastUpdated = latestTime;
       }
     } catch {
       // Abaikan jika database belum tersambung
@@ -62,7 +64,7 @@ export async function GET() {
       success: true,
       lastUpdated,
       semester: 3,
-      academicYear: "2025/2026",
+      academicYear: "2026/2027",
       data: schedules,
       courses: INITIAL_COURSES,
     });
