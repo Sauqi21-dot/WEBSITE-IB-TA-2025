@@ -13,7 +13,7 @@ export async function GET() {
       const supabase = createClientServer();
       const { data, error } = await supabase
         .from("public_students")
-        .select("id, full_name, nickname, photo_path, photo_public, bio, social_link, position, birthday_day, birthday_month, birthday_public")
+        .select("id, full_name, nickname, photo_path, photo_public, bio, social_link, position, birthday_day, birthday_month, birthday_public, instagram_url, linkedin_url, website_url")
         .order("full_name", { ascending: true });
 
       if (!error && data && data.length > 0) {
@@ -29,7 +29,7 @@ export async function GET() {
         const adminSupabase = createAdminClient();
         const { data, error } = await adminSupabase
           .from("public_students")
-          .select("id, full_name, nickname, photo_path, photo_public, bio, social_link, position, birthday_day, birthday_month, birthday_public")
+          .select("id, full_name, nickname, photo_path, photo_public, bio, social_link, position, birthday_day, birthday_month, birthday_public, instagram_url, linkedin_url, website_url")
           .order("full_name", { ascending: true });
 
         if (!error && data && data.length > 0) {
@@ -55,12 +55,16 @@ export async function GET() {
         birthday_day: s.birthday_day,
         birthday_month: s.birthday_month,
         birthday_public: true,
+        instagram_url: null,
+        linkedin_url: null,
+        website_url: null,
       }));
     }
 
     // Pastikan tidak ada satupun field nim dalam respons
     const sanitizedStudents = students.map((s: any) => {
-      const { nim: _nim, ...safeData } = s;
+      const safeData = { ...s };
+      delete safeData.nim;
       return safeData;
     });
 

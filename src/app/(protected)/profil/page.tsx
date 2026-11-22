@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/client";
-import { processProfileImage } from "@/lib/image-optimizer";
+import ImageCropModal from "@/components/ImageCropModal";
 import { Profile } from "@/types/database";
 
 const MONTHS = [
@@ -32,11 +32,15 @@ export default function ProfilPage() {
   const [birthdayMonth, setBirthdayMonth] = useState<string>("");
   const [photoPublic, setPhotoPublic] = useState(false);
   const [birthdayPublic, setBirthdayPublic] = useState(false);
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
 
   /* ─── foto profil ─── */
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [photoStatus, setPhotoStatus] = useState<PhotoStatus>("idle");
   const [photoMsg, setPhotoMsg] = useState("");
 
@@ -53,54 +57,102 @@ export default function ProfilPage() {
 
   /* ─── load profil ─── */
   useEffect(() => {
+    setProfile(null);
+    setLoading(true);
+    setPageError(null);
+
     async function load() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { router.push("/login"); return; }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 400));
+          }
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            if (attempt === 2) {
+              window.location.href = "/login";
+              return;
+            }
+            continue;
+          }
 
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
 
-        if (error || !data) { setPageError("Gagal memuat data profil."); return; }
-
-        const p = data as Profile;
-        setProfile(p);
-        setNickname(p.nickname || "");
-        setBio(p.bio || "");
-        setBirthdayDay(p.birthday_day ? String(p.birthday_day) : "");
-        setBirthdayMonth(p.birthday_month ? String(p.birthday_month) : "");
-        setPhotoPublic(p.photo_public ?? false);
-        setBirthdayPublic(p.birthday_public ?? false);
-        setPreviewUrl(p.photo_path || null);
-      } catch {
-        setPageError("Terjadi kesalahan saat memuat profil.");
-      } finally {
-        setLoading(false);
+          if (data) {
+            const p = data as Profile;
+            setProfile(p);
+            setNickname(p.nickname || "");
+            setBio(p.bio || "");
+            setBirthdayDay(p.birthday_day ? String(p.birthday_day) : "");
+            setBirthdayMonth(p.birthday_month ? String(p.birthday_month) : "");
+            setPhotoPublic(p.photo_public ?? false);
+            setBirthdayPublic(p.birthday_public ?? false);
+            setInstagramUrl(p.instagram_url || "");
+            setLinkedinUrl(p.linkedin_url || "");
+            setWebsiteUrl(p.website_url || "");
+            setPreviewUrl(p.photo_path || null);
+            setLoading(false);
+            return;
+          }
+          if (error) {
+            console.warn(`[Profil] load attempt ${attempt + 1} gagal:`, error.message);
+          }
+        } catch (err) {
+          console.warn(`[Profil] load attempt ${attempt + 1} error:`, err);
+        }
       }
+      setPageError("Data profil tidak dapat dimuat saat ini. Silakan muat ulang halaman.");
+      setLoading(false);
     }
     load();
   }, [router]);
 
-  /* ─── pilih foto ─── */
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  /* ─── pilih foto & buka editor crop ─── */
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoStatus("idle");
     setPhotoMsg("");
-    try {
-      const processed = await processProfileImage(file);
-      setPreviewUrl(processed.dataUrl);
-      setPendingBlob(processed.blob);
-    } catch (err: any) {
-      setPhotoMsg(err.message || "Gagal memproses foto.");
+
+    // Validasi format: hanya JPG, PNG, atau WebP
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setPhotoMsg("Format foto tidak didukung. Harap unggah berkas JPG, PNG, atau WebP.");
       setPhotoStatus("error");
+      e.target.value = "";
+      return;
     }
-    // reset input supaya bisa pilih file yang sama lagi
+
+    // Validasi ukuran: maksimal 2 MB
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoMsg("Ukuran berkas melebihi batas 2 MB. Silakan pilih foto dengan ukuran lebih kecil.");
+      setPhotoStatus("error");
+      e.target.value = "";
+      return;
+    }
+
+    // Buka modal editor crop interaktif
+    setCropFile(file);
+    // reset input agar file yang sama bisa dipilih kembali jika dibatalkan
     e.target.value = "";
+  }, []);
+
+  /* ─── penanganan hasil pemotongan foto (crop) ─── */
+  const handleCropComplete = useCallback((croppedBlob: Blob, croppedDataUrl: string) => {
+    setPendingBlob(croppedBlob);
+    setPreviewUrl(croppedDataUrl);
+    setCropFile(null);
+    setPhotoStatus("idle");
+    setPhotoMsg("Foto berhasil dipotong dan disesuaikan. Klik 'Simpan Foto' untuk mengunggah.");
+  }, []);
+
+  const handleCropCancel = useCallback(() => {
+    setCropFile(null);
   }, []);
 
   /* ─── upload foto ─── */
@@ -137,6 +189,9 @@ export default function ProfilPage() {
         birthday_month: birthdayMonth ? parseInt(birthdayMonth, 10) : null,
         photo_public: photoPublic,
         birthday_public: birthdayPublic,
+        instagram_url: instagramUrl.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        website_url: websiteUrl.trim() || null,
       };
       const res = await fetch("/api/profile/update", {
         method: "POST",
@@ -152,7 +207,7 @@ export default function ProfilPage() {
       setSaveStatus("error");
       setSaveMsg(err.message || "Terjadi kesalahan saat menyimpan.");
     }
-  }, [nickname, bio, birthdayDay, birthdayMonth, photoPublic, birthdayPublic]);
+  }, [nickname, bio, birthdayDay, birthdayMonth, photoPublic, birthdayPublic, instagramUrl, linkedinUrl, websiteUrl]);
 
   /* ─── ganti password ─── */
   const handleChangePassword = useCallback(async (e: React.FormEvent) => {
@@ -270,7 +325,7 @@ export default function ProfilPage() {
                 </span>
                 {profile.role === "super_admin" && (
                   <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded">
-                    Ketua · Super Admin
+                    {profile.position ? `${profile.position} · Super Admin` : "Super Admin"}
                   </span>
                 )}
                 {profile.role === "admin" && (
@@ -281,6 +336,39 @@ export default function ProfilPage() {
               </div>
               <h1 className="font-serif text-2xl font-bold text-ib-dark">{profile.full_name}</h1>
               <p className="text-xs text-ib-text/70 font-mono">NPM: {profile.nim}</p>
+              {/* Tautan sosial di kartu identitas */}
+              {(profile.instagram_url || profile.linkedin_url || profile.website_url) && (
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {profile.instagram_url && (() => {
+                    const user = profile.instagram_url.replace("https://instagram.com/", "").replace("https://www.instagram.com/", "").replace(/\/$/, "");
+                    return (
+                      <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Instagram @${user}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                        @{user}
+                      </a>
+                    );
+                  })()}
+                  {profile.linkedin_url && (() => {
+                    const handle = profile.linkedin_url.split("/in/")[1]?.replace(/\/$/, "") ?? "";
+                    return (
+                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`LinkedIn ${handle}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                        {handle}
+                      </a>
+                    );
+                  })()}
+                  {profile.website_url && (() => {
+                    let domain = "";
+                    try { domain = new URL(profile.website_url).hostname.replace(/^www\./, ""); } catch { domain = profile.website_url; }
+                    return (
+                      <a href={profile.website_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Website ${domain}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        {domain}
+                      </a>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
@@ -381,8 +469,7 @@ export default function ProfilPage() {
               </div>
 
               {/* Ulang tahun */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-2 gap-4">                <div>
                   <label htmlFor="bday" className="block text-xs text-ib-text/60 uppercase tracking-wider mb-1">
                     Tanggal Lahir
                   </label>
@@ -416,6 +503,49 @@ export default function ProfilPage() {
                 </div>
               </div>
               <p className="text-xs text-ib-text/50 -mt-2">Tahun lahir tidak disimpan — hanya hari &amp; bulan.</p>
+
+              {/* Tautan sosial opsional */}
+              <div>
+                <label htmlFor="instagram_url" className="block text-xs text-ib-text/60 uppercase tracking-wider mb-1">
+                  Instagram <span className="text-ib-text/40 normal-case">(username atau link profil, opsional)</span>
+                </label>
+                <input
+                  id="instagram_url"
+                  type="text"
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="@username atau https://instagram.com/username"
+                  className="w-full px-3 py-2 border border-ib-border rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ib-action/40"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="linkedin_url" className="block text-xs text-ib-text/60 uppercase tracking-wider mb-1">
+                  LinkedIn <span className="text-ib-text/40 normal-case">(link profil, opsional)</span>
+                </label>
+                <input
+                  id="linkedin_url"
+                  type="text"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/username"
+                  className="w-full px-3 py-2 border border-ib-border rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ib-action/40"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="website_url" className="block text-xs text-ib-text/60 uppercase tracking-wider mb-1">
+                  Website Pribadi <span className="text-ib-text/40 normal-case">(https saja, opsional)</span>
+                </label>
+                <input
+                  id="website_url"
+                  type="text"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://namakamu.com"
+                  className="w-full px-3 py-2 border border-ib-border rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ib-action/40"
+                />
+              </div>
 
               {/* Tombol simpan */}
               <div className="pt-2">
@@ -572,13 +702,22 @@ export default function ProfilPage() {
               <ul className="text-xs text-ib-text/70 list-disc list-inside space-y-1">
                 <li>Format: JPG, PNG, atau WebP</li>
                 <li>Ukuran maksimal: 2 MB</li>
-                <li>Otomatis diperkecil ke maks 600×600 px</li>
-                <li>Data lokasi (EXIF) dihapus otomatis</li>
+                <li>Editor crop rasio persegi dengan pratinjau lingkaran</li>
+                <li>Otomatis diperkecil (format WebP) & metadata EXIF dihapus</li>
               </ul>
             </div>
 
           </div>
         </div>
+
+        {/* Modal Editor Crop Foto Interaktif */}
+        {cropFile && (
+          <ImageCropModal
+            file={cropFile}
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        )}
       </main>
       <Footer />
     </>
