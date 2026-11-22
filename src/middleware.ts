@@ -59,7 +59,6 @@ export async function middleware(request: NextRequest) {
 
   const isProtectedPath =
     pathname.startsWith("/profil") ||
-    pathname.startsWith("/kas") ||
     pathname.startsWith("/admin");
 
   const isLoginPage = pathname === "/login";

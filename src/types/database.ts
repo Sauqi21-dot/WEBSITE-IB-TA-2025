@@ -16,9 +16,11 @@ export interface Profile {
   must_change_password: boolean;
   is_active: boolean;
   role: UserRole;
-  can_manage_kas: boolean;
   created_at: string;
   updated_at: string;
+  instagram_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
 }
 
 // AC-02: Public student view NEVER contains NIM, phone, address, or email!
@@ -34,6 +36,9 @@ export interface PublicStudent {
   birthday_day: number | null;
   birthday_month: number | null;
   birthday_public: boolean;
+  instagram_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
 }
 
 export interface Course {
@@ -79,36 +84,6 @@ export interface ClassHistory {
   class_name: string;
   summary: string;
   created_at: string;
-}
-
-export interface KasPeriod {
-  id: string;
-  label: string;
-  due_date: string;
-  amount: number;
-  created_at: string;
-}
-
-export interface KasTransaction {
-  id: string;
-  type: 'masuk' | 'keluar';
-  amount: number;
-  student_id: string | null;
-  category: string;
-  occurred_on: string;
-  description: string;
-  proof_path: string | null;
-  recorded_by: string;
-  voided_at: string | null;
-  voided_by: string | null;
-  void_reason: string | null;
-  created_at: string;
-}
-
-export interface KasBalance {
-  balance: number;
-  total_in: number;
-  total_out: number;
 }
 
 export interface ActivityLog {

@@ -10,14 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         ib: {
-          dark: "#065F46",     // Hijau tua: judul, navigasi, blok footer
-          action: "#047857",   // Hijau aksi: tombol dan link
-          bright: "#34D399",   // Hijau terang: hanya di atas latar hijau tua
-          bg: "#F7F5EF",       // Latar: background halaman
-          text: "#14201B",     // Teks: teks utama
-          border: "#D9D6CB",   // Garis: border dan pemisah
-          accent: "#D99A00",   // Aksen: penanda hari ini, ultah, label diubah
-          danger: "#B3261E",   // Peringatan: void kas, error
+          bg: "#FAFAF8",          // Latar
+          text: "#14201B",        // Teks utama
+          muted: "#5B6660",       // Teks sekunder
+          border: "#E4E4DE",      // Garis
+          action: "#047857",      // Aksen
+          "action-hover": "#065F46", // Hover aksen
+          danger: "#B3261E",      // Galat
+          dark: "#14201B",        // Teks utama (kompatibilitas)
         },
       },
       fontFamily: {

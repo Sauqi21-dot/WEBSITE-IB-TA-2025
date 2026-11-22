@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     if (!caller || caller.role !== "super_admin") {
       return NextResponse.json(
-        { error: "Akses ditolak: Hanya Ketua Kelas (Super Admin) yang berhak me-reset password akun." },
+        { error: "Akses ditolak: Hanya Super Admin yang berhak me-reset password akun." },
         { status: 403 }
       );
     }

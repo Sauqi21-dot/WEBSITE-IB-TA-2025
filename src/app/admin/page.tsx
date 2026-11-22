@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { processGalleryImage } from "@/lib/gallery-optimizer";
 import { Profile } from "@/types/database";
 
-type AdminTab = "jadwal" | "galeri" | "mahasiswa" | "kas" | "akun" | "logs";
+type AdminTab = "jadwal" | "galeri" | "history" | "mahasiswa" | "akun" | "logs";
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -85,36 +85,71 @@ export default function AdminPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
+  // State Riwayat Kelas
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [newHistSemester, setNewHistSemester] = useState("4");
+  const [newHistClassName, setNewHistClassName] = useState("");
+  const [newHistPeriod, setNewHistPeriod] = useState("");
+  const [newHistSummary, setNewHistSummary] = useState("");
+  const [submittingNewHist, setSubmittingNewHist] = useState(false);
+  const [newHistMsg, setNewHistMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // State Edit Riwayat Kelas
+  const [editingHist, setEditingHist] = useState<any | null>(null);
+  const [editHistClassName, setEditHistClassName] = useState("");
+  const [editHistPeriod, setEditHistPeriod] = useState("");
+  const [editHistSummary, setEditHistSummary] = useState("");
+  const [submittingEditHist, setSubmittingEditHist] = useState(false);
+  const [editHistMsg, setEditHistMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // 1. Verifikasi Hak Akses
   useEffect(() => {
+    setProfile(null);
+    setLoading(true);
+    setHasAccess(null);
+
     async function checkAuth() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-          window.location.href = "/login?redirect=/admin";
+          if (!user) {
+            if (attempt === 2) {
+              window.location.href = "/login?redirect=/admin";
+              return;
+            }
+            continue;
+          }
+
+          const res = await fetch("/api/admin/check-access", { cache: "no-store" });
+          const json = await res.json();
+
+          if (res.status === 401) {
+            if (attempt === 2) {
+              window.location.href = "/login?redirect=/admin";
+              return;
+            }
+            continue;
+          }
+
+          setProfile(json.profile);
+          setHasAccess(Boolean(json.hasAccess));
+          setLoading(false);
           return;
+        } catch (err) {
+          console.warn(`[Admin] checkAuth attempt ${attempt + 1} error:`, err);
         }
-
-        const res = await fetch("/api/admin/check-access");
-        const json = await res.json();
-
-        if (res.status === 401) {
-          window.location.href = "/login?redirect=/admin";
-          return;
-        }
-
-        setProfile(json.profile);
-        setHasAccess(Boolean(json.hasAccess));
-      } catch (err) {
-        setHasAccess(false);
-      } finally {
-        setLoading(false);
       }
+      setHasAccess(false);
+      setLoading(false);
     }
     checkAuth();
   }, []);
+
+  const isSuperAdmin = profile?.role === "super_admin";
 
   // 2. Fetcher Data per Tab
   const loadSchedules = useCallback(async () => {
@@ -169,13 +204,99 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/admin/history", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setHistoryItems(json.history || []);
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!hasAccess) return;
+    if (!isSuperAdmin && (activeTab === "akun" || activeTab === "logs")) {
+      setActiveTab("jadwal");
+      return;
+    }
     if (activeTab === "jadwal") loadSchedules();
     if (activeTab === "galeri") loadGallery();
-    if (activeTab === "mahasiswa" || activeTab === "akun") loadAccounts();
-    if (activeTab === "logs") loadLogs();
-  }, [hasAccess, activeTab, loadSchedules, loadGallery, loadAccounts, loadLogs]);
+    if (activeTab === "history") loadHistory();
+    if (activeTab === "mahasiswa" || (activeTab === "akun" && isSuperAdmin)) loadAccounts();
+    if (activeTab === "logs" && isSuperAdmin) loadLogs();
+  }, [hasAccess, isSuperAdmin, activeTab, loadSchedules, loadGallery, loadHistory, loadAccounts, loadLogs]);
+
+  // Handler Tambah Riwayat Semester
+  const handleAddHistory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewHistMsg(null);
+    setSubmittingNewHist(true);
+    try {
+      const res = await fetch("/api/admin/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          semester: newHistSemester,
+          class_name: newHistClassName,
+          period: newHistPeriod,
+          summary: newHistSummary,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menambah semester.");
+      setNewHistMsg({ type: "success", text: json.message });
+      setNewHistClassName("");
+      setNewHistPeriod("");
+      setNewHistSummary("");
+      await loadHistory();
+    } catch (err: any) {
+      setNewHistMsg({ type: "error", text: err.message });
+    } finally {
+      setSubmittingNewHist(false);
+    }
+  };
+
+  // Handler Buka Modal Edit Riwayat
+  const openEditHistModal = (hist: any) => {
+    setEditingHist(hist);
+    setEditHistClassName(hist.class_name || "");
+    setEditHistPeriod(hist.period || "");
+    setEditHistSummary(hist.summary || "");
+    setEditHistMsg(null);
+  };
+
+  // Handler Simpan Edit Riwayat
+  const handleSaveEditHistory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingHist) return;
+    setSubmittingEditHist(true);
+    setEditHistMsg(null);
+    try {
+      const res = await fetch("/api/admin/history", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingHist.id,
+          class_name: editHistClassName,
+          period: editHistPeriod,
+          summary: editHistSummary,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal memperbarui riwayat.");
+      setEditHistMsg({ type: "success", text: json.message });
+      await loadHistory();
+      setTimeout(() => setEditingHist(null), 700);
+    } catch (err: any) {
+      setEditHistMsg({ type: "error", text: err.message });
+    } finally {
+      setSubmittingEditHist(false);
+    }
+  };
 
   // Handler Submit Jadwal
   const handleAddSchedule = async (e: React.FormEvent) => {
@@ -420,7 +541,7 @@ export default function AdminPage() {
     }
   };
 
-  // Handler Toggle Aktif Akun (Ketua)
+  // Handler Toggle Aktif Akun (Super Admin)
   const handleToggleActive = async (targetId: string, currentActive: boolean) => {
     try {
       const res = await fetch("/api/admin/accounts/toggle-active", {
@@ -434,7 +555,7 @@ export default function AdminPage() {
     }
   };
 
-  // Handler Reset Password (Ketua)
+  // Handler Reset Password (Super Admin)
   const handleResetPassword = async (targetId: string, name: string, nim: string) => {
     if (!confirm(`Reset password untuk ${name} (${nim}) ke password sementara acak?`)) return;
     try {
@@ -520,9 +641,6 @@ export default function AdminPage() {
     );
   }
 
-  const isKetua = profile?.role === "super_admin";
-  const isBendahara = Boolean(profile?.can_manage_kas);
-
   // ─── TAMPILAN DASHBOARD ADMIN ───
   return (
     <>
@@ -536,23 +654,20 @@ export default function AdminPage() {
                 Panel Administrasi Kelas
               </span>
               <span className="text-xs uppercase font-semibold px-2 py-0.5 rounded bg-[#E8E4D5] text-ib-dark">
-                {profile?.role === "super_admin" ? "Ketua (Super Admin)" : `Pengurus (${profile?.position || "Admin"})`}
+                {profile?.role === "super_admin" ? "Super Admin" : `Pengurus (${profile?.position || "Admin"})`}
               </span>
             </div>
             <h1 className="font-serif text-2xl md:text-3xl font-bold text-ib-dark">
               Pusat Kendali IB 2025
             </h1>
             <p className="text-xs text-ib-text/70 mt-0.5">
-              Kelola jadwal kuliah, galeri kenangan, data mahasiswa, kas kelas, dan akun anggota.
+              Kelola jadwal kuliah, galeri kenangan, data mahasiswa, dan akun anggota.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <Link href="/profil" className="btn-secondary text-xs py-1.5 px-3">
               Profil Saya
-            </Link>
-            <Link href="/kas" className="btn-primary text-xs py-1.5 px-3">
-              Buku Kas
             </Link>
           </div>
         </div>
@@ -580,6 +695,16 @@ export default function AdminPage() {
             🖼️ Galeri Foto
           </button>
           <button
+            onClick={() => setActiveTab("history")}
+            className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
+              activeTab === "history"
+                ? "bg-white border-ib-border text-ib-dark font-bold"
+                : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
+            }`}
+          >
+            📜 Riwayat Kelas
+          </button>
+          <button
             onClick={() => setActiveTab("mahasiswa")}
             className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
               activeTab === "mahasiswa"
@@ -589,36 +714,30 @@ export default function AdminPage() {
           >
             🎓 Mahasiswa (24)
           </button>
-          <button
-            onClick={() => setActiveTab("kas")}
-            className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
-              activeTab === "kas"
-                ? "bg-white border-ib-border text-ib-dark font-bold"
-                : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
-            }`}
-          >
-            💰 Kas (Bendahara)
-          </button>
-          <button
-            onClick={() => setActiveTab("akun")}
-            className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
-              activeTab === "akun"
-                ? "bg-white border-ib-border text-ib-dark font-bold"
-                : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
-            }`}
-          >
-            🔑 Akun &amp; Aktivasi {isKetua && "★"}
-          </button>
-          <button
-            onClick={() => setActiveTab("logs")}
-            className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
-              activeTab === "logs"
-                ? "bg-white border-ib-border text-ib-dark font-bold"
-                : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
-            }`}
-          >
-            📋 Log Aktivitas
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActiveTab("akun")}
+              className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
+                activeTab === "akun"
+                  ? "bg-white border-ib-border text-ib-dark font-bold"
+                  : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
+              }`}
+            >
+              🔑 Akun &amp; Aktivasi ★
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActiveTab("logs")}
+              className={`py-2.5 px-4 rounded-t border-t border-l border-r -mb-px transition whitespace-nowrap ${
+                activeTab === "logs"
+                  ? "bg-white border-ib-border text-ib-dark font-bold"
+                  : "border-transparent text-ib-text/70 hover:text-ib-dark hover:bg-white/50"
+              }`}
+            >
+              📋 Log Aktivitas
+            </button>
+          )}
         </div>
 
         {/* ─── TAB 1: KELOLA JADWAL KULIAH ─── */}
@@ -1068,6 +1187,177 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ─── TAB RIWAYAT KELAS (LINI MASA) ─── */}
+        {activeTab === "history" && (
+          <div className="space-y-6">
+            {/* Form Tambah Semester Baru */}
+            <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-4">
+              <div className="border-b border-ib-border pb-2">
+                <h2 className="font-serif text-lg font-bold text-ib-dark">
+                  Tambah Semester Baru ke Riwayat Kelas
+                </h2>
+                <p className="text-xs text-ib-text/70 mt-0.5">
+                  Tambahkan catatan jejak langkah kelas untuk semester baru. Data yang disimpan akan langsung tampil di tab Lini Masa halaman Galeri.
+                </p>
+              </div>
+
+              {newHistMsg && (
+                <div
+                  className={`p-3 rounded text-xs font-semibold ${
+                    newHistMsg.type === "success"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
+                >
+                  {newHistMsg.text}
+                </div>
+              )}
+
+              <form onSubmit={handleAddHistory} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                      Nomor Semester *
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={newHistSemester}
+                      onChange={(e) => setNewHistSemester(e.target.value)}
+                      className="w-full text-xs p-2 border border-ib-border rounded bg-white"
+                      placeholder="Contoh: 4"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                      Nama Kelas *
+                    </label>
+                    <input
+                      type="text"
+                      value={newHistClassName}
+                      onChange={(e) => setNewHistClassName(e.target.value)}
+                      className="w-full text-xs p-2 border border-ib-border rounded bg-white"
+                      placeholder="Contoh: 4IB"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                      Periode Semester *
+                    </label>
+                    <input
+                      type="text"
+                      value={newHistPeriod}
+                      onChange={(e) => setNewHistPeriod(e.target.value)}
+                      className="w-full text-xs p-2 border border-ib-border rounded bg-white"
+                      placeholder="Contoh: Genap 2025 / 2026"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                    Ringkasan Perjalanan Kelas (Opsional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={newHistSummary}
+                    onChange={(e) => setNewHistSummary(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-ib-border rounded bg-white"
+                    placeholder="Tuliskan ringkasan perjalanan, fokus perkuliahan, atau momen berkesan kelas di semester ini..."
+                  />
+                  <p className="text-[11px] text-ib-text/60 mt-0.5">
+                    Jika dikosongkan, halaman publik akan menampilkan "Belum ada catatan".
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingNewHist}
+                  className="btn-primary text-xs py-2 px-5 font-bold"
+                >
+                  {submittingNewHist ? "Menyimpan Semester…" : "+ Simpan Semester Baru"}
+                </button>
+              </form>
+            </div>
+
+            {/* Daftar Semester Riwayat Kelas */}
+            <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ib-border pb-3">
+                <div>
+                  <h2 className="font-serif text-lg font-bold text-ib-dark">
+                    Daftar Semester Riwayat Kelas ({historyItems.length})
+                  </h2>
+                  <p className="text-xs text-ib-text/70 mt-0.5">
+                    Urutan linimasa per semester. Klik Edit untuk memperbarui nama kelas, periode, atau ringkasan.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadHistory}
+                  disabled={historyLoading}
+                  className="btn-secondary text-xs py-1 px-3 self-start sm:self-auto"
+                >
+                  {historyLoading ? "Memuat…" : "Segarkan Data"}
+                </button>
+              </div>
+
+              {historyLoading ? (
+                <div className="p-8 text-center text-xs text-ib-text/60 animate-pulse">
+                  Memuat data riwayat kelas…
+                </div>
+              ) : historyItems.length === 0 ? (
+                <div className="p-8 text-center text-xs text-ib-text/60 border border-dashed border-ib-border rounded">
+                  Belum ada catatan riwayat kelas. Silakan tambahkan semester pertama di atas.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {historyItems.map((hist) => (
+                    <div
+                      key={hist.id || hist.semester}
+                      className="border border-ib-border rounded p-4 bg-[#FCFAF5] flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-ib-dark text-white rounded">
+                            Semester {hist.semester}
+                          </span>
+                          <span className="text-sm font-bold text-ib-dark">
+                            Kelas {hist.class_name}
+                          </span>
+                          <span className="text-xs font-medium px-2 py-0.5 bg-[#EFECE2] text-ib-dark rounded border border-ib-border/60">
+                            {hist.period || "Periode belum diset"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-ib-text/80 leading-relaxed">
+                          {hist.summary && hist.summary.trim() ? (
+                            hist.summary
+                          ) : (
+                            <span className="italic text-ib-text/50">Belum ada catatan</span>
+                          )}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openEditHistModal(hist)}
+                        className="px-3 py-1.5 text-xs font-semibold text-ib-dark bg-[#ECE7D6] hover:bg-[#DFD9C5] rounded transition flex items-center gap-1 self-start sm:self-center flex-shrink-0"
+                      >
+                        ✏️ Edit Semester
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ─── TAB 3: DATA MAHASISWA (24 NAMA) ─── */}
         {activeTab === "mahasiswa" && (
           <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-4">
@@ -1097,7 +1387,6 @@ export default function AdminPage() {
                       <th className="py-2.5 px-3">Nama Lengkap</th>
                       <th className="py-2.5 px-3">Nama Panggilan</th>
                       <th className="py-2.5 px-3">Jabatan / Role</th>
-                      <th className="py-2.5 px-3">Hak Kas</th>
                       <th className="py-2.5 px-3">Privasi Foto</th>
                       <th className="py-2.5 px-3">Privasi Ultah</th>
                     </tr>
@@ -1122,13 +1411,6 @@ export default function AdminPage() {
                             {acc.position || (acc.role === "super_admin" ? "Ketua" : "Mahasiswa")}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 font-semibold">
-                          {acc.can_manage_kas ? (
-                            <span className="text-emerald-700">✓ Bendahara</span>
-                          ) : (
-                            <span className="text-ib-text/40">-</span>
-                          )}
-                        </td>
                         <td className="py-2.5 px-3">
                           {acc.photo_public ? "Publik" : "Inisial"}
                         </td>
@@ -1144,60 +1426,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ─── TAB 4: KAS (BENDAHARA) ─── */}
-        {activeTab === "kas" && (
-          <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-6">
-            <div className="border-b border-ib-border pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="font-serif text-lg font-bold text-ib-dark">
-                  Pusat Pengelolaan Kas Kelas
-                </h2>
-                <p className="text-xs text-ib-text/70 mt-0.5">
-                  Seluruh operasi pencatatan iuran (checklist 24 nama), pencatatan pengeluaran, dan pembatalan transaksi (void) dipusatkan di modul Kas.
-                </p>
-              </div>
-
-              <Link href="/kas" className="btn-primary text-xs py-2 px-4 self-start sm:self-auto">
-                Buka Halaman Kas Lengkap ↗
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border border-ib-border rounded bg-[#FCFAF5] space-y-2">
-                <span className="text-xs uppercase font-bold text-ib-dark block">1. Checklist 24 Nama</span>
-                <p className="text-xs text-ib-text/70">
-                  Catat pembayaran mahasiswa per periode secara cepat dengan menandai nama-nama dari daftar kelas.
-                </p>
-                <Link href="/kas" className="text-xs text-ib-action font-semibold hover:underline block pt-2">
-                  Buka Layar Catat Pembayaran →
-                </Link>
-              </div>
-
-              <div className="p-4 border border-ib-border rounded bg-[#FCFAF5] space-y-2">
-                <span className="text-xs uppercase font-bold text-ib-dark block">2. Catat Pengeluaran</span>
-                <p className="text-xs text-ib-text/70">
-                  Input pengeluaran kelas beserta kategori dan keterangan spesifik demi akuntabilitas bersama.
-                </p>
-                <Link href="/kas" className="text-xs text-ib-action font-semibold hover:underline block pt-2">
-                  Buka Form Pengeluaran →
-                </Link>
-              </div>
-
-              <div className="p-4 border border-ib-border rounded bg-[#FCFAF5] space-y-2">
-                <span className="text-xs uppercase font-bold text-ib-dark block">3. Audit Trail &amp; Void</span>
-                <p className="text-xs text-ib-text/70">
-                  Pembatalan transaksi append-only yang mewajibkan input alasan resmi tanpa menghapus data asal.
-                </p>
-                <Link href="/kas" className="text-xs text-ib-action font-semibold hover:underline block pt-2">
-                  Buka Buku Kas Besar →
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB 5: KELOLA AKUN & AKTIVASI (KETUA) ─── */}
-        {activeTab === "akun" && (
+        {/* ─── TAB 5: KELOLA AKUN & AKTIVASI (SUPER ADMIN) ─── */}
+        {activeTab === "akun" && isSuperAdmin && (
           <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ib-border pb-3">
               <div>
@@ -1205,20 +1435,14 @@ export default function AdminPage() {
                   Manajemen Akun Mahasiswa &amp; Aktivasi
                 </h2>
                 <p className="text-xs text-ib-text/70 mt-0.5">
-                  Aktivasi akun kelas dan reset password sementara adalah hak prerogatif Ketua Kelas (Super Admin).
+                  Aktivasi akun kelas dan reset password sementara adalah hak prerogatif Super Admin.
                 </p>
               </div>
 
               <div className="text-xs font-semibold px-2.5 py-1 rounded bg-amber-100 text-amber-900 border border-amber-300">
-                {isKetua ? "★ Kewenangan Ketua Aktif" : "Mode Hanya Lihat (Admin)"}
+                ★ Kewenangan Super Admin Aktif
               </div>
             </div>
-
-            {!isKetua && (
-              <div className="p-3 bg-amber-50 border border-amber-300 rounded text-xs text-amber-900">
-                Anda login sebagai Admin ({profile?.position || "Pengurus"}). Mengaktifkan/menonaktifkan akun dan me-reset password akun hanya dapat dilakukan oleh Ketua Kelas (M. Zidal Muttaqin).
-              </div>
-            )}
 
             {accountsLoading ? (
               <p className="text-xs text-ib-text/60 animate-pulse">Memuat akun…</p>
@@ -1233,7 +1457,7 @@ export default function AdminPage() {
                       <th className="py-2.5 px-3">Peran</th>
                       <th className="py-2.5 px-3 text-center">Status Akun</th>
                       <th className="py-2.5 px-3 text-center">Wajib Ubah PW</th>
-                      {isKetua && <th className="py-2.5 px-3 text-center">Aksi Ketua</th>}
+                      {isSuperAdmin && <th className="py-2.5 px-3 text-center">Aksi Super Admin</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ib-border/60">
@@ -1263,7 +1487,7 @@ export default function AdminPage() {
                             <span className="text-[10px] text-ib-text/40">Tidak</span>
                           )}
                         </td>
-                        {isKetua && (
+                        {isSuperAdmin && (
                           <td className="py-2.5 px-3 text-center whitespace-nowrap space-x-2">
                             <button
                               type="button"
@@ -1296,7 +1520,7 @@ export default function AdminPage() {
         )}
 
         {/* ─── TAB 6: LOG AKTIVITAS ─── */}
-        {activeTab === "logs" && (
+        {activeTab === "logs" && isSuperAdmin && (
           <div className="bg-white border border-ib-border p-6 rounded shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ib-border pb-3">
               <div>
@@ -1746,6 +1970,104 @@ export default function AdminPage() {
                     className="btn-primary text-xs py-1.5 px-4 font-bold"
                   >
                     {savingSchedEdit ? "Menyimpan Perubahan…" : "Simpan Perubahan Jadwal"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ─── MODAL EDIT RIWAYAT KELAS ─── */}
+        {editingHist && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 space-y-4 border border-ib-border max-h-[90vh] overflow-y-auto">
+              <div className="border-b border-ib-border pb-2 flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif text-lg font-bold text-ib-dark">
+                    Edit Riwayat Semester {editingHist.semester}
+                  </h3>
+                  <p className="text-xs text-ib-text/70">
+                    Ubah nama kelas, periode akademik, atau ringkasan catatan semester ini.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingHist(null)}
+                  className="text-ib-text/50 hover:text-ib-dark font-bold text-lg px-2"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {editHistMsg && (
+                <div
+                  className={`p-2.5 rounded text-xs font-semibold ${
+                    editHistMsg.type === "success"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
+                  }`}
+                >
+                  {editHistMsg.text}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveEditHistory} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                      Nama Kelas *
+                    </label>
+                    <input
+                      type="text"
+                      value={editHistClassName}
+                      onChange={(e) => setEditHistClassName(e.target.value)}
+                      className="w-full text-xs p-2 border border-ib-border rounded bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                      Periode Semester *
+                    </label>
+                    <input
+                      type="text"
+                      value={editHistPeriod}
+                      onChange={(e) => setEditHistPeriod(e.target.value)}
+                      className="w-full text-xs p-2 border border-ib-border rounded bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ib-text/70 mb-1">
+                    Ringkasan Perjalanan Kelas
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={editHistSummary}
+                    onChange={(e) => setEditHistSummary(e.target.value)}
+                    className="w-full text-xs p-2.5 border border-ib-border rounded bg-white"
+                    placeholder="Tuliskan ringkasan perjalanan kelas... Jika kosong, akan tampil 'Belum ada catatan'."
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-ib-border">
+                  <button
+                    type="button"
+                    onClick={() => setEditingHist(null)}
+                    disabled={submittingEditHist}
+                    className="btn-secondary text-xs py-1.5 px-3"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingEditHist}
+                    className="btn-primary text-xs py-1.5 px-4 font-bold"
+                  >
+                    {submittingEditHist ? "Menyimpan…" : "Simpan Perubahan"}
                   </button>
                 </div>
               </form>

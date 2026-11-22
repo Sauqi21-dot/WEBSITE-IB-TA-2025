@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     if (!caller || caller.role !== "super_admin") {
       return NextResponse.json(
-        { error: "Akses ditolak: Hanya Ketua Kelas (Super Admin) yang berwenang mengaktifkan atau menonaktifkan akun." },
+        { error: "Akses ditolak: Hanya Super Admin yang berwenang mengaktifkan atau menonaktifkan akun." },
         { status: 403 }
       );
     }

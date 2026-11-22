@@ -218,6 +218,40 @@ export default function MahasiswaPage() {
                       3IB · Polsri
                     </span>
                   </div>
+
+                  {/* Tautan sosial — hanya yang diisi */}
+                  {(student.instagram_url || student.linkedin_url || student.website_url) && (
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {student.instagram_url && (() => {
+                        const user = student.instagram_url.replace("https://instagram.com/", "").replace("https://www.instagram.com/", "").replace(/\/$/, "");
+                        return (
+                          <a href={student.instagram_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Instagram @${user}`} className="flex items-center gap-1 text-[11px] text-ib-text/70 hover:text-ib-dark transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                            @{user}
+                          </a>
+                        );
+                      })()}
+                      {student.linkedin_url && (() => {
+                        const handle = student.linkedin_url.split("/in/")[1]?.replace(/\/$/, "") ?? "";
+                        return (
+                          <a href={student.linkedin_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`LinkedIn ${handle}`} className="flex items-center gap-1 text-[11px] text-ib-text/70 hover:text-ib-dark transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                            {handle}
+                          </a>
+                        );
+                      })()}
+                      {student.website_url && (() => {
+                        let domain = "";
+                        try { domain = new URL(student.website_url).hostname.replace(/^www\./, ""); } catch { domain = student.website_url; }
+                        return (
+                          <a href={student.website_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Website ${domain}`} className="flex items-center gap-1 text-[11px] text-ib-text/70 hover:text-ib-dark transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            {domain}
+                          </a>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,42 +17,95 @@ interface UserProfile {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState(false);
 
   useEffect(() => {
-    async function loadUser() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
+    let mounted = true;
+    const supabase = createClient();
+
+    // Reset state seketika agar tidak menampilkan sisa data lama
+    setProfile(null);
+    setProfileLoadError(false);
+    setLoading(true);
+
+    async function fetchProfile(userId: string) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          if (!mounted) return;
+          const { data, error } = await supabase
             .from("profiles")
             .select("id, nim, full_name, nickname, photo_path, role, position")
-            .eq("id", user.id)
+            .eq("id", userId)
             .single();
-          if (data) setProfile(data);
+
+          if (!mounted) return;
+          if (data) {
+            setProfile(data);
+            setLoading(false);
+            return;
+          }
+          if (error) {
+            console.warn(`[Navbar] fetchProfile attempt ${attempt + 1} gagal:`, error.message);
+          }
+        } catch (err) {
+          console.warn(`[Navbar] fetchProfile attempt ${attempt + 1} error:`, err);
         }
-      } catch {
-        // Ignored if client not ready
-      } finally {
+      }
+      if (mounted) {
+        setProfileLoadError(true);
         setLoading(false);
       }
     }
-    loadUser();
+
+    // 1. Periksa sesi aktif saat mount/navigasi
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted) return;
+      if (user) {
+        fetchProfile(user.id);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    // 2. Dengarkan event auth realtime (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (event === "SIGNED_OUT" || !session?.user) {
+        setProfile(null);
+        setLoading(false);
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        fetchProfile(session.user.id);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [pathname]);
 
   const handleLogout = async () => {
     try {
+      setProfile(null);
+      setLoading(true);
+      // Hapus sesi di server (cookie dihapus oleh API route)
       await fetch("/api/auth/logout", { method: "POST" });
+      // Hapus sesi di client
       const supabase = createClient();
       await supabase.auth.signOut();
-      setProfile(null);
-      router.push("/");
-      router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
+    } finally {
+      // Hard redirect — React tree di-unmount sepenuhnya, tidak ada state yang tersisa
+      window.location.href = "/login";
     }
   };
 
@@ -72,34 +125,50 @@ export default function Navbar() {
     : "";
 
   return (
-    <header className="border-b border-ib-border bg-[#F7F5EF] sticky top-0 z-40">
+    <header className="border-b border-ib-border bg-ib-bg sticky top-0 z-40">
       {/* Masthead Header */}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-ib-border/60">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 border-b border-ib-border">
         <div>
           <div className="flex items-baseline gap-3">
-            <Link href="/" className="font-serif text-2xl md:text-3xl font-bold text-ib-dark tracking-tight hover:opacity-90 transition">
+            <Link href="/" className="font-serif text-2xl md:text-3xl font-bold text-ib-text tracking-tight hover:text-ib-action transition">
               IB 2025
             </Link>
-            <span className="text-xs uppercase tracking-widest font-semibold px-2 py-0.5 bg-[#E7E3D5] text-ib-dark rounded">
+            <span className="text-xs uppercase tracking-widest text-ib-muted">
               IB JOSJIS
             </span>
           </div>
-          <p className="text-xs text-ib-text/75 mt-0.5">
+          <p className="text-xs text-ib-muted mt-0.5">
             D3 Manajemen Informatika · Polsri · Angkatan 2025
           </p>
         </div>
 
         {/* User status */}
-        <div className="flex items-center gap-3 text-sm">
-          {!loading && profile ? (
+        <div className="flex items-center gap-3 text-sm min-h-[32px]">
+          {loading ? (
+            /* Kerangka / skeleton saat profil sedang dimuat */
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-ib-border" />
+              <div className="space-y-1 hidden sm:block">
+                <div className="w-16 h-3 bg-ib-border rounded" />
+                <div className="w-10 h-2 bg-ib-border rounded" />
+              </div>
+            </div>
+          ) : profileLoadError ? (
+            <span className="text-xs text-ib-danger font-medium">
+              Profil tidak dapat dimuat.{" "}
+              <button onClick={() => window.location.reload()} className="underline">
+                Muat ulang
+              </button>
+            </span>
+          ) : profile ? (
             <div className="flex items-center gap-3">
               {/* Item 2: Klik foto/nama membuka /profil */}
               <Link
                 href="/profil"
-                className="flex items-center gap-2.5 hover:opacity-85 transition group"
+                className="flex items-center gap-2.5 hover:text-ib-action transition group"
                 title="Buka Profil Saya"
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-ib-dark text-white flex items-center justify-center font-serif font-bold text-xs border border-ib-border flex-shrink-0 group-hover:border-ib-action">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-ib-border text-ib-text flex items-center justify-center font-serif text-xs flex-shrink-0">
                   {profile.photo_path ? (
                     <img
                       src={profile.photo_path}
@@ -111,11 +180,11 @@ export default function Navbar() {
                   )}
                 </div>
                 <div className="text-left">
-                  <span className="font-semibold text-xs sm:text-sm text-ib-dark group-hover:text-ib-action leading-tight block">
+                  <span className="font-semibold text-xs sm:text-sm text-ib-text group-hover:text-ib-action leading-tight block">
                     {displayName}
                   </span>
                   {profile.position ? (
-                    <span className="text-[10px] text-ib-accent block leading-none">
+                    <span className="text-[10px] text-ib-muted block leading-none">
                       {profile.position}
                     </span>
                   ) : null}
@@ -128,14 +197,14 @@ export default function Navbar() {
                 Logout
               </button>
             </div>
-          ) : !loading ? (
+          ) : (
             <Link
               href="/login"
               className="btn-primary text-xs py-1.5 px-4"
             >
               Login NPM
             </Link>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -150,8 +219,8 @@ export default function Navbar() {
                   href={link.href}
                   className={`transition-colors pb-1 inline-block ${
                     isActive
-                      ? "text-ib-dark font-bold border-b-2 border-ib-dark"
-                      : "hover:text-ib-action"
+                      ? "text-ib-text font-bold border-b-2 border-ib-text"
+                      : "text-ib-muted hover:text-ib-action"
                   }`}
                 >
                   {link.label}
@@ -161,18 +230,12 @@ export default function Navbar() {
           })}
         </ul>
 
-        {profile && (
+        {!loading && profile && (
           <div className="flex items-center gap-4 text-xs font-semibold pl-4">
-            <Link
-              href="/kas"
-              className={`hover:text-ib-action ${pathname.startsWith("/kas") ? "text-ib-dark underline" : "text-ib-text/80"}`}
-            >
-              Kas Kelas
-            </Link>
             {(profile.role === "admin" || profile.role === "super_admin") && (
               <Link
                 href="/admin"
-                className="text-ib-dark bg-[#E4DFC8] px-2 py-0.5 rounded hover:bg-[#D9D3BA]"
+                className="text-ib-text hover:text-ib-action"
               >
                 Panel Admin
               </Link>

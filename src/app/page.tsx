@@ -134,7 +134,7 @@ export default function HomePage() {
                   Kenapa website ini ada
                 </h2>
                 <p className="text-sm text-ib-text/85 mt-3 leading-relaxed">
-                  Jadwal sering tenggelam di grup chat, foto kenangan tersebar di galeri masing-masing, dan kas perlu dicatat dengan jelas. Jadi kami kumpulkan di sini. Jadwal, mahasiswa, galeri, dan ulang tahun bisa dilihat siapa saja. Login dipakai untuk profil dan kas.
+                  Jadwal sering tenggelam di grup chat, foto kenangan tersebar di galeri masing-masing. Jadi kami kumpulkan di sini. Jadwal, mahasiswa, galeri, dan ulang tahun bisa dilihat siapa saja. Login dipakai untuk profil.
                 </p>
                 <div className="mt-5 pt-4 border-t border-ib-border flex flex-wrap items-center gap-3 text-xs">
                   <Link href="/jadwal" className="btn-secondary py-1.5 px-3">
@@ -163,18 +163,18 @@ export default function HomePage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 bg-white border border-ib-border rounded space-y-1">
-                  <span className="text-[11px] uppercase font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
-                    Ketua Kelas (Super Admin)
+                  <span className="text-[11px] uppercase font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
+                    Ketua Kelas (Admin)
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">M. Zidal Muttaqin</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Koordinator kelas, mengaktifkan akun, dan mengaudit kas.
+                    Koordinator kelas dan mengaktifkan akun.
                   </p>
                 </div>
 
                 <div className="p-4 bg-white border border-ib-border rounded space-y-1">
-                  <span className="text-[11px] uppercase font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
-                    Wakil Ketua (Admin)
+                  <span className="text-[11px] uppercase font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
+                    Wakil Ketua (Super Admin)
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">Ahmad Sauqi Efriansyah</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
@@ -194,11 +194,11 @@ export default function HomePage() {
 
                 <div className="p-4 bg-white border border-ib-border rounded space-y-1">
                   <span className="text-[11px] uppercase font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
-                    Bendahara (Admin Kas)
+                    Bendahara (Admin)
                   </span>
                   <p className="font-semibold text-ib-dark text-sm mt-1">Salsabila Julia Mecca</p>
                   <p className="text-xs text-ib-text/75 leading-relaxed">
-                    Mencatat iuran dan menjaga saldo kas.
+                    Pengurus administrasi dan keuangan kelas.
                   </p>
                 </div>
               </div>
@@ -316,7 +316,7 @@ export default function HomePage() {
                   Akses Mahasiswa
                 </p>
                 <p className="text-ib-text/80 leading-relaxed">
-                  Login dengan NPM untuk mengelola profil dan melihat kas kelas.
+                  Login dengan NPM untuk mengelola profil mahasiswa.
                 </p>
                 <Link href="/login" className="btn-primary text-xs py-2 w-full block text-center mt-2">
                   Masuk dengan NPM &rarr;

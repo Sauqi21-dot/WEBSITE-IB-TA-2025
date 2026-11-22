@@ -26,7 +26,7 @@ export async function GET() {
     // Ambil seluruh 24 mahasiswa
     const { data: accounts, error } = await supabase
       .from("profiles")
-      .select("id, nim, full_name, nickname, role, position, can_manage_kas, is_active, must_change_password, photo_path, photo_public, birthday_public, created_at, updated_at")
+      .select("id, nim, full_name, nickname, role, position, is_active, must_change_password, photo_path, photo_public, birthday_public, created_at, updated_at")
       .order("nim", { ascending: true });
 
     if (error) {

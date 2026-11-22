@@ -1,13 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const initialError = searchParams.get("error");
 
@@ -41,8 +40,8 @@ function LoginForm() {
         return;
       }
 
-      // Berhasil login: gunakan full navigation agar sesi dan middleware tersinkron sempurna
-      const targetUrl = data.redirectTo || "/profil";
+      // Berhasil login: ganti dengan redirect penuh setelah login berhasil (window.location.href = '/')
+      const targetUrl = data.redirectTo === "/ganti-password" ? "/ganti-password" : "/";
       window.location.href = targetUrl;
     } catch {
       setError("Terjadi gangguan koneksi. Silakan periksa jaringan Anda.");
@@ -61,7 +60,7 @@ function LoginForm() {
           Masuk dengan NPM
         </h1>
         <p className="text-xs text-ib-text/70 mt-1">
-          Gunakan NPM resmi Anda (contoh: 062530801587) untuk mengakses profil dan kas kelas.
+          Gunakan NPM resmi Anda (contoh: 062530801587) untuk mengakses profil dan portal mahasiswa.
         </p>
       </div>
 

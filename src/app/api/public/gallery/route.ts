@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { createClientServer } from "@/lib/supabase/server";
 import { INITIAL_GALLERY_ITEMS, INITIAL_CLASS_HISTORY } from "../../../../../scripts/gallery-and-history-data";
 
+export const dynamic = "force-dynamic";
+
+const noStoreHeaders = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+};
+
 export async function GET() {
   try {
     let gallery: any[] = [];
@@ -41,16 +47,19 @@ export async function GET() {
 
     const featuredPhoto = gallery.find((g: any) => g.is_featured === true) || null;
 
-    return NextResponse.json({
-      success: true,
-      gallery,
-      history,
-      featuredPhoto,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        gallery,
+        history,
+        featuredPhoto,
+      },
+      { headers: noStoreHeaders }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || "Gagal memuat galeri dan riwayat kelas." },
-      { status: 500 }
+      { status: 500, headers: noStoreHeaders }
     );
   }
 }

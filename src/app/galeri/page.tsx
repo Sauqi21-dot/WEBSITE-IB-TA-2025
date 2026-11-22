@@ -241,10 +241,10 @@ export default function GaleriPage() {
                     </div>
 
                     <p className="text-sm text-ib-text/85 leading-relaxed">
-                      {hist.summary}
+                      {hist.summary && hist.summary.trim() ? hist.summary : "Belum ada catatan"}
                     </p>
 
-                    {hist.highlights && (
+                    {hist.highlights && hist.highlights.length > 0 && (
                       <div className="bg-[#FCFAF5] p-3 rounded border border-ib-border text-xs space-y-1.5">
                         <span className="font-semibold text-ib-dark block">Sorotan Utama:</span>
                         <ul className="list-disc list-inside space-y-1 text-ib-text/80">

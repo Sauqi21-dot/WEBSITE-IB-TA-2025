@@ -19,8 +19,11 @@ export async function GET() {
       .eq("id", user.id)
       .single();
 
-    if (!caller || (caller.role !== "admin" && caller.role !== "super_admin")) {
-      return NextResponse.json({ error: "Akses ditolak." }, { status: 403 });
+    if (!caller || caller.role !== "super_admin") {
+      return NextResponse.json(
+        { error: "Akses ditolak: Hanya Super Admin yang berhak melihat log aktivitas." },
+        { status: 403 }
+      );
     }
 
     // Ambil log aktivitas beserta data profil pelaku

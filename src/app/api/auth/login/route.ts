@@ -81,25 +81,37 @@ export async function POST(request: Request) {
     // 6. Return response dengan tujuan redirect
     const redirectTo = profile.must_change_password ? "/ganti-password" : "/profil";
 
-    return NextResponse.json({
-      success: true,
-      message: `Selamat datang, ${profile.full_name}`,
-      profile: {
-        id: profile.id,
-        nim: profile.nim,
-        full_name: profile.full_name,
-        nickname: profile.nickname,
-        role: profile.role,
-        position: profile.position,
-        must_change_password: profile.must_change_password,
+    return NextResponse.json(
+      {
+        success: true,
+        message: `Selamat datang, ${profile.full_name}`,
+        profile: {
+          id: profile.id,
+          nim: profile.nim,
+          full_name: profile.full_name,
+          nickname: profile.nickname,
+          role: profile.role,
+          position: profile.position,
+          must_change_password: profile.must_change_password,
+        },
+        redirectTo,
       },
-      redirectTo,
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Login error:", error);
     return NextResponse.json(
       { error: error?.message || "Terjadi kesalahan internal pada server." },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
     );
   }
 }

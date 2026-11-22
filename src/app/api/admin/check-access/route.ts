@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const supabase = createClientServer();
@@ -10,30 +12,59 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authErr || !user) {
-      return NextResponse.json({ error: "Belum login." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Belum login." },
+        {
+          status: 401,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+        }
+      );
     }
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, nim, full_name, nickname, role, position, can_manage_kas, is_active")
+      .select("id, nim, full_name, nickname, role, position, is_active")
       .eq("id", user.id)
       .single();
 
     if (!profile) {
-      return NextResponse.json({ error: "Profil tidak ditemukan." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Profil tidak ditemukan." },
+        {
+          status: 404,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+        }
+      );
     }
 
     const isAdmin = profile.role === "admin" || profile.role === "super_admin";
     const isKetua = profile.role === "super_admin";
-    const isBendahara = Boolean(profile.can_manage_kas);
 
-    return NextResponse.json({
-      hasAccess: isAdmin,
-      isKetua,
-      isBendahara,
-      profile,
-    });
+    return NextResponse.json(
+      {
+        hasAccess: isAdmin,
+        isKetua,
+        profile,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   }
 }

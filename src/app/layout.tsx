@@ -1,19 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { Newsreader, Source_Sans_3 } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
-const newsreader = Playfair_Display({
+const newsreader = Newsreader({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   variable: "--font-newsreader",
   display: "swap",
 });
 
 const sourceSans3 = Source_Sans_3({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "600"],
   variable: "--font-source-sans-3",
   display: "swap",
 });
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#065F46",
+  themeColor: "#FAFAF8",
 };
 
 export default function RootLayout({
@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${newsreader.variable} ${sourceSans3.variable}`}>
-      <body className="min-h-screen flex flex-col bg-ib-bg text-ib-text antialiased selection:bg-ib-dark selection:text-white">
+      <body className="min-h-screen flex flex-col bg-ib-bg text-ib-text antialiased selection:bg-ib-action selection:text-white">
         <ServiceWorkerRegister />
         {children}
       </body>
