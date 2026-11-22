@@ -7,6 +7,12 @@ import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/client";
 import ImageCropModal from "@/components/ImageCropModal";
 import { Profile } from "@/types/database";
+import {
+  validateSocialLink,
+  parseInstagramDisplay,
+  parseLinkedinDisplay,
+  parseWebsiteDisplay,
+} from "@/lib/social-links";
 
 const MONTHS = [
   "Januari","Februari","Maret","April","Mei","Juni",
@@ -339,29 +345,34 @@ export default function ProfilPage() {
               {/* Tautan sosial di kartu identitas */}
               {(profile.instagram_url || profile.linkedin_url || profile.website_url) && (
                 <div className="flex flex-wrap gap-3 mt-2">
-                  {profile.instagram_url && (() => {
-                    const user = profile.instagram_url.replace("https://instagram.com/", "").replace("https://www.instagram.com/", "").replace(/\/$/, "");
+                  {(() => {
+                    const validUrl = validateSocialLink("instagram", profile.instagram_url);
+                    if (!validUrl) return null;
+                    const user = parseInstagramDisplay(validUrl);
                     return (
-                      <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Instagram @${user}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                      <a href={validUrl} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Instagram @${user}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                         @{user}
                       </a>
                     );
                   })()}
-                  {profile.linkedin_url && (() => {
-                    const handle = profile.linkedin_url.split("/in/")[1]?.replace(/\/$/, "") ?? "";
+                  {(() => {
+                    const validUrl = validateSocialLink("linkedin", profile.linkedin_url);
+                    if (!validUrl) return null;
+                    const handle = parseLinkedinDisplay(validUrl);
                     return (
-                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`LinkedIn ${handle}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                      <a href={validUrl} target="_blank" rel="noopener noreferrer nofollow" aria-label={`LinkedIn ${handle}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
                         {handle}
                       </a>
                     );
                   })()}
-                  {profile.website_url && (() => {
-                    let domain = "";
-                    try { domain = new URL(profile.website_url).hostname.replace(/^www\./, ""); } catch { domain = profile.website_url; }
+                  {(() => {
+                    const validUrl = validateSocialLink("website", profile.website_url);
+                    if (!validUrl) return null;
+                    const domain = parseWebsiteDisplay(validUrl);
                     return (
-                      <a href={profile.website_url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Website ${domain}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
+                      <a href={validUrl} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Website ${domain}`} className="flex items-center gap-1 text-xs text-ib-text/70 hover:text-ib-dark transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                         {domain}
                       </a>
