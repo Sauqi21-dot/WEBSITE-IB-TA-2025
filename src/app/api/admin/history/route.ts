@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClientServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -132,6 +133,9 @@ export async function POST(request: Request) {
       },
     });
 
+    // On-demand revalidation galeri (tab riwayat kelas)
+    revalidatePath("/galeri");
+
     return NextResponse.json({
       success: true,
       message: `Riwayat Semester ${numSemester} (${class_name.trim()}) berhasil ditambahkan.`,
@@ -230,6 +234,9 @@ export async function PATCH(request: Request) {
         new: { class_name: updated.class_name, period: updated.period, summary: updated.summary },
       },
     });
+
+    // On-demand revalidation galeri (tab riwayat kelas)
+    revalidatePath("/galeri");
 
     return NextResponse.json({
       success: true,

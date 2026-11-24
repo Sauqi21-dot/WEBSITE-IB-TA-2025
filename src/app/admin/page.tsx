@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +12,7 @@ import { Profile } from "@/types/database";
 type AdminTab = "jadwal" | "galeri" | "history" | "mahasiswa" | "akun" | "logs";
 
 export default function AdminPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -253,6 +255,7 @@ export default function AdminPage() {
       setNewHistPeriod("");
       setNewHistSummary("");
       await loadHistory();
+      router.refresh();
     } catch (err: any) {
       setNewHistMsg({ type: "error", text: err.message });
     } finally {
@@ -290,6 +293,7 @@ export default function AdminPage() {
       if (!res.ok) throw new Error(json.error || "Gagal memperbarui riwayat.");
       setEditHistMsg({ type: "success", text: json.message });
       await loadHistory();
+      router.refresh();
       setTimeout(() => setEditingHist(null), 700);
     } catch (err: any) {
       setEditHistMsg({ type: "error", text: err.message });
@@ -325,6 +329,7 @@ export default function AdminPage() {
       setSchedRoom("");
       setSchedNotes("");
       loadSchedules();
+      router.refresh();
     } catch (err: any) {
       setSchedMsg({ type: "error", text: err.message });
     }
@@ -338,6 +343,7 @@ export default function AdminPage() {
         body: JSON.stringify({ id, archived: !currentArchived }),
       });
       loadSchedules();
+      router.refresh();
     } catch (err) {
       console.error(err);
     }
@@ -387,6 +393,7 @@ export default function AdminPage() {
       setTimeout(() => {
         setEditingSchedule(null);
         loadSchedules();
+        router.refresh();
       }, 800);
     } catch (err: any) {
       setEditSchedMsg({ type: "error", text: err.message });
@@ -445,6 +452,7 @@ export default function AdminPage() {
       setGalleryIsFeatured(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       loadGallery();
+      router.refresh();
     } catch (err: any) {
       setGalleryMsg({ type: "error", text: err.message });
     } finally {
@@ -460,6 +468,7 @@ export default function AdminPage() {
         body: JSON.stringify({ id, is_featured: !currentFeatured }),
       });
       loadGallery();
+      router.refresh();
     } catch (err) {
       console.error(err);
     }
@@ -473,6 +482,7 @@ export default function AdminPage() {
         body: JSON.stringify({ id, archived: !currentArchived }),
       });
       loadGallery();
+      router.refresh();
     } catch (err) {
       console.error(err);
     }
@@ -533,6 +543,7 @@ export default function AdminPage() {
       setTimeout(() => {
         setEditingGalleryItem(null);
         loadGallery();
+        router.refresh();
       }, 1000);
     } catch (err: any) {
       setEditGalleryMsg({ type: "error", text: err.message });

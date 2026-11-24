@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClientServer } from "@/lib/supabase/server";
 
 // ─── Helpers validasi URL sosial ───────────────────────────────────────────
@@ -316,6 +317,11 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString(),
       },
     });
+
+    // 6. On-demand revalidation untuk halaman publik yang menampilkan data mahasiswa
+    revalidatePath("/mahasiswa");
+    revalidatePath("/ulang-tahun");
+    revalidatePath("/");
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClientServer } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -165,6 +166,10 @@ export async function POST(request: Request) {
         },
       });
 
+      // On-demand revalidation galeri dan beranda
+      revalidatePath("/galeri");
+      revalidatePath("/");
+
       return NextResponse.json({
         success: true,
         message: publicUrl
@@ -215,6 +220,10 @@ export async function POST(request: Request) {
       },
     });
 
+    // On-demand revalidation galeri dan beranda
+    revalidatePath("/galeri");
+    revalidatePath("/");
+
     return NextResponse.json({
       success: true,
       message: "Foto galeri berhasil diunggah (Format WebP tanpa EXIF).",
@@ -249,7 +258,7 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, archived, title, caption } = body;
+    const { id, archived, title, caption, is_featured } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID galeri wajib diisi." }, { status: 400 });
@@ -257,6 +266,7 @@ export async function PUT(request: Request) {
 
     const updatePayload: Record<string, any> = {};
     if (typeof archived === "boolean") updatePayload.archived = archived;
+    if (typeof is_featured === "boolean") updatePayload.is_featured = is_featured;
     if (title !== undefined) updatePayload.title = title.trim();
     if (caption !== undefined) updatePayload.caption = caption.trim() || null;
 
@@ -271,6 +281,10 @@ export async function PUT(request: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // On-demand revalidation galeri dan beranda
+    revalidatePath("/galeri");
+    revalidatePath("/");
 
     return NextResponse.json({
       success: true,

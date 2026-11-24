@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClientServer } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -111,6 +112,11 @@ export async function POST(request: Request) {
         mimeType: file.type,
       },
     });
+
+    // On-demand revalidation untuk halaman publik yang menampilkan avatar mahasiswa
+    revalidatePath("/mahasiswa");
+    revalidatePath("/ulang-tahun");
+    revalidatePath("/");
 
     return NextResponse.json({
       success: true,

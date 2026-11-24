@@ -177,11 +177,12 @@ export default function ProfilPage() {
       setPendingBlob(null);
       // update profile state agar avatar di navbar ikut refresh
       setProfile((prev) => prev ? { ...prev, photo_path: json.photo_path } : prev);
+      router.refresh();
     } catch (err: any) {
       setPhotoStatus("error");
       setPhotoMsg(err.message || "Gagal mengunggah foto.");
     }
-  }, [pendingBlob]);
+  }, [pendingBlob, router]);
 
   /* ─── simpan profil ─── */
   const handleSaveProfile = useCallback(async () => {
@@ -209,11 +210,12 @@ export default function ProfilPage() {
       setSaveStatus("success");
       setSaveMsg("Profil berhasil disimpan.");
       if (json.profile) setProfile(json.profile as Profile);
+      router.refresh();
     } catch (err: any) {
       setSaveStatus("error");
       setSaveMsg(err.message || "Terjadi kesalahan saat menyimpan.");
     }
-  }, [nickname, bio, birthdayDay, birthdayMonth, photoPublic, birthdayPublic, instagramUrl, linkedinUrl, websiteUrl]);
+  }, [nickname, bio, birthdayDay, birthdayMonth, photoPublic, birthdayPublic, instagramUrl, linkedinUrl, websiteUrl, router]);
 
   /* ─── ganti password ─── */
   const handleChangePassword = useCallback(async (e: React.FormEvent) => {

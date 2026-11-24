@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClientServer } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -158,6 +159,10 @@ export async function POST(request: Request) {
       },
     });
 
+    // On-demand revalidation jadwal dan beranda
+    revalidatePath("/jadwal");
+    revalidatePath("/");
+
     return NextResponse.json({
       success: true,
       message: "Jadwal kuliah berhasil ditambahkan.",
@@ -266,6 +271,10 @@ export async function PUT(request: Request) {
         by: caller.full_name,
       },
     });
+
+    // On-demand revalidation jadwal dan beranda
+    revalidatePath("/jadwal");
+    revalidatePath("/");
 
     return NextResponse.json({
       success: true,
