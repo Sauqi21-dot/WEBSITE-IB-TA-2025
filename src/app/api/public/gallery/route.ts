@@ -17,7 +17,10 @@ export async function GET() {
       const supabase = createClientServer();
       const { data: gData, error: gError } = await supabase
         .from("gallery_items")
-        .select("*")
+        .select(`
+          id, title, caption, image_path, semester, category, taken_on, is_featured, archived, uploaded_by,
+          uploader:profiles(id, full_name, nickname)
+        `)
         .eq("archived", false)
         .order("taken_on", { ascending: false });
 

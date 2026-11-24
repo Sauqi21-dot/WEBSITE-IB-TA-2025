@@ -112,7 +112,7 @@ export async function POST(request: Request) {
       }
 
       const fileExt = file.type === "image/webp" ? "webp" : file.type.split("/")[1] || "webp";
-      const filePath = `semester-${semester}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
+      const filePath = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
 
       const { error: uploadError } = await adminSupabase.storage
         .from("gallery")
