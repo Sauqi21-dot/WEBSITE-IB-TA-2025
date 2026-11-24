@@ -134,7 +134,7 @@ export default function Navbar() {
               IB 2025
             </Link>
             <span className="text-xs uppercase tracking-widest text-ib-muted">
-              IB JOSJIS
+              MIVIBESS 25
             </span>
           </div>
           <p className="text-xs text-ib-muted mt-0.5">

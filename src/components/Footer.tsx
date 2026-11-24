@@ -8,7 +8,7 @@ export default function Footer() {
               IB 2025
             </span>
             <span className="text-xs uppercase tracking-wider text-ib-muted">
-              IB JOSJIS
+              MIVIBESS 25
             </span>
           </div>
           <p className="text-xs text-ib-muted mt-1">
@@ -21,11 +21,8 @@ export default function Footer() {
 
         <div className="text-xs text-ib-muted flex flex-col md:items-end gap-1">
           <p>Politeknik Negeri Sriwijaya, Palembang</p>
-          <p>
-            M. Zidal Muttaqin (Ketua) · Ahmad Sauqi (Wakil) · Putri Alika (Sekretaris) · Salsabila (Bendahara)
-          </p>
           <p className="text-[11px] mt-1">
-            &copy; 2026 Kelas 3IB
+            &copy; sauqi-dev 2025. All rights reserved.
           </p>
         </div>
       </div>
